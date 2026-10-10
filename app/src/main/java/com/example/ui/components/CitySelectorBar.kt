@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.LocationItem
+import com.example.ui.animation.bounceClickable
 import com.example.ui.theme.*
 
 @Composable
@@ -51,21 +52,9 @@ fun CitySelectorBar(
         // 1. Current GPS Location Pill
         item(key = "current_gps_pill") {
             val isCurrentActive = activeLocation.isCurrentLocation
-            val gpsScale by animateFloatAsState(
-                targetValue = if (isCurrentActive) 1.03f else 1.0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "gpsPillScale"
-            )
 
             Row(
                 modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = gpsScale
-                        scaleY = gpsScale
-                    }
                     .clip(RoundedCornerShape(20.dp))
                     .background(if (isCurrentActive) DarkElevated else DarkSurface)
                     .border(
@@ -73,10 +62,9 @@ fun CitySelectorBar(
                         if (isCurrentActive) EditorialBlue else HairlineBorder,
                         RoundedCornerShape(20.dp)
                     )
-                    .clickable(
+                    .bounceClickable(
                         enabled = !isLocating,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
+                        scaleDown = 0.94f
                     ) { onRequestCurrentLocation() }
                     .padding(horizontal = 11.dp, vertical = 6.dp)
                     .testTag("current_location_button"),
@@ -114,10 +102,7 @@ fun CitySelectorBar(
                     .clip(RoundedCornerShape(20.dp))
                     .background(DarkSurface)
                     .border(1.dp, HairlineBorder, RoundedCornerShape(20.dp))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onOpenSearch() }
+                    .bounceClickable(scaleDown = 0.94f) { onOpenSearch() }
                     .padding(horizontal = 11.dp, vertical = 6.dp)
                     .testTag("open_search_button"),
                 verticalAlignment = Alignment.CenterVertically,
@@ -142,21 +127,9 @@ fun CitySelectorBar(
         // 3. Location Chips (Saved & Curated Cities with animated scale microinteractions)
         items(locations, key = { it.id }) { loc ->
             val isSelected = loc.id == activeLocation.id
-            val chipScale by animateFloatAsState(
-                targetValue = if (isSelected) 1.03f else 1.0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "locChipScale_${loc.id}"
-            )
 
             Row(
                 modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = chipScale
-                        scaleY = chipScale
-                    }
                     .clip(RoundedCornerShape(20.dp))
                     .background(if (isSelected) DarkElevated else DarkSurface)
                     .border(
@@ -164,10 +137,7 @@ fun CitySelectorBar(
                         color = if (isSelected) InkWhite.copy(alpha = 0.5f) else HairlineBorder,
                         shape = RoundedCornerShape(20.dp)
                     )
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onSelectLocation(loc) }
+                    .bounceClickable(scaleDown = 0.94f) { onSelectLocation(loc) }
                     .padding(horizontal = 12.dp, vertical = 6.dp)
                     .testTag("location_chip_${loc.id}"),
                 verticalAlignment = Alignment.CenterVertically,

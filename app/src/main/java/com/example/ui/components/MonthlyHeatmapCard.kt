@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.DailyHeatmapPoint
 import com.example.data.model.MonthlyHeatmapReport
+import com.example.ui.animation.bounceClickable
 import com.example.ui.theme.*
 
 @Composable
@@ -59,7 +60,7 @@ fun MonthlyHeatmapCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded },
+                .bounceClickable(scaleDown = 0.98f) { isExpanded = !isExpanded },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -160,13 +161,15 @@ fun MonthlyHeatmapCard(
                                         .weight(1f)
                                         .height(28.dp)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(day.level.color.copy(alpha = if (isSelected) 0.5f else 0.2f))
+                                        .background(day.level.color.copy(alpha = if (isSelected) 0.55f else 0.2f))
                                         .border(
                                             width = if (isSelected) 1.5.dp else 1.dp,
                                             color = if (isSelected) InkWhite else day.level.color.copy(alpha = 0.5f),
                                             shape = RoundedCornerShape(6.dp)
                                         )
-                                        .clickable { selectedDay = day },
+                                        .bounceClickable(scaleDown = 0.88f) {
+                                            selectedDay = if (isSelected) null else day
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -187,45 +190,49 @@ fun MonthlyHeatmapCard(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Selected Day Inspection Tooltip
-                selectedDay?.let { day ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(DarkElevated)
-                            .padding(horizontal = 10.dp, vertical = 7.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${day.dayOfWeek}, ${day.displayDate}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = InkWhite,
-                                fontSize = 11.sp
-                            )
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Avg AQI ${day.avgAqi.toInt()}",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    color = day.level.color,
-                                    fontSize = 12.sp
+                // Selected Day Inspection Tooltip with animated reveal
+                AnimatedVisibility(visible = selectedDay != null) {
+                    selectedDay?.let { day ->
+                        Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(DarkElevated)
+                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${day.dayOfWeek}, ${day.displayDate}",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        color = InkWhite,
+                                        fontSize = 11.sp
+                                    )
                                 )
-                            )
-                            Text(
-                                text = "· ${day.level.label}",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = day.level.color,
-                                    fontSize = 10.sp
-                                )
-                            )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "Avg AQI ${day.avgAqi.toInt()}",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            color = day.level.color,
+                                            fontSize = 12.sp
+                                        )
+                                    )
+                                    Text(
+                                        text = "· ${day.level.label}",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = day.level.color,
+                                            fontSize = 10.sp
+                                        )
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 // Legend row

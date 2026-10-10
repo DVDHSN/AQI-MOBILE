@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppMode
+import com.example.ui.animation.bounceClickable
 import com.example.ui.theme.*
 
 @Composable
@@ -74,27 +75,14 @@ fun TopMasthead(
                 AppMode.entries.forEach { mode ->
                     val isSelected = mode == appMode
                     val modeLabel = if (mode == AppMode.DISPATCH) "Overview" else "Compare"
-                    val pillScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.02f else 0.98f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        ),
-                        label = "mastheadMode_${mode.name}"
-                    )
 
                     Box(
                         modifier = Modifier
-                            .graphicsLayer {
-                                scaleX = pillScale
-                                scaleY = pillScale
-                            }
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (isSelected) DarkElevated else DarkSurface)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { onSelectAppMode(mode) }
+                            .bounceClickable(scaleDown = 0.95f) {
+                                onSelectAppMode(mode)
+                            }
                             .padding(horizontal = 11.dp, vertical = 5.dp)
                             .testTag("app_mode_${mode.name}"),
                         contentAlignment = Alignment.Center
@@ -113,31 +101,18 @@ fun TopMasthead(
                 Spacer(modifier = Modifier.width(3.dp))
 
                 // Refresh Button inside header with tactile microinteraction
-                var refreshTrigger by remember { mutableStateOf(false) }
-                val refreshScale by animateFloatAsState(
-                    targetValue = if (refreshTrigger) 0.85f else 1.0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessHigh
-                    ),
-                    finishedListener = { refreshTrigger = false },
-                    label = "refreshButtonScale"
-                )
-
-                IconButton(
-                    onClick = {
-                        refreshTrigger = true
-                        onRefresh()
-                    },
-                    enabled = !isRefreshing,
+                Box(
                     modifier = Modifier
                         .size(28.dp)
-                        .graphicsLayer {
-                            scaleX = refreshScale
-                            scaleY = refreshScale
-                        }
                         .clip(CircleShape)
-                        .testTag("refresh_button")
+                        .bounceClickable(
+                            enabled = !isRefreshing,
+                            scaleDown = 0.86f
+                        ) {
+                            onRefresh()
+                        }
+                        .testTag("refresh_button"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -145,7 +120,7 @@ fun TopMasthead(
                         tint = if (isRefreshing) EditorialBlue else InkMuted,
                         modifier = Modifier
                             .size(15.dp)
-                            .rotate(if (isRefreshing) rotation else 0f)
+                            .graphicsLayer { rotationZ = if (isRefreshing) rotation else 0f }
                     )
                 }
             }

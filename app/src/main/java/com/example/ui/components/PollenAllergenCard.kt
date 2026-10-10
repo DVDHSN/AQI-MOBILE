@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AllergenReport
+import com.example.ui.animation.bounceClickable
 import com.example.ui.theme.*
 import java.util.Locale
 
@@ -58,7 +59,7 @@ fun PollenAllergenCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded },
+                .bounceClickable(scaleDown = 0.98f) { isExpanded = !isExpanded },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -154,52 +155,119 @@ fun PollenAllergenCard(
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     report.pollens.forEach { pollen ->
-                        Row(
+                        var isPollenSelected by remember { mutableStateOf(false) }
+                        val progressFraction = (pollen.countGrains / 350f).coerceIn(0.05f, 1f)
+                        val animatedPollenProgress by animateFloatAsState(
+                            targetValue = progressFraction,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
+                            label = "pollenProgress_${pollen.name}"
+                        )
+
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(DarkElevated)
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .then(
+                                    if (isPollenSelected) {
+                                        Modifier.border(1.dp, pollen.risk.color.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                    } else Modifier
+                                )
+                                .bounceClickable(scaleDown = 0.97f) {
+                                    isPollenSelected = !isPollenSelected
+                                }
+                                .animateContentSize(
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                )
+                                .padding(horizontal = 12.dp, vertical = 9.dp)
                         ) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(pollen.risk.color)
+                                    )
+                                    Text(
+                                        text = pollen.name,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = InkWhite,
+                                            fontSize = 13.sp
+                                        )
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = String.format(Locale.US, "%.0f grains/m³", pollen.countGrains),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = InkMuted,
+                                            fontSize = 11.sp
+                                        )
+                                    )
+                                    Text(
+                                        text = pollen.risk.label,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = pollen.risk.color,
+                                            fontSize = 10.sp
+                                        )
+                                    )
+                                }
+                            }
+
+                            // Animated Exposure Progress Bar
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.5.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(PitchBlack)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
+                                        .fillMaxWidth(animatedPollenProgress)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(2.dp))
                                         .background(pollen.risk.color)
-                                )
-                                Text(
-                                    text = pollen.name,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = InkWhite,
-                                        fontSize = 13.sp
-                                    )
                                 )
                             }
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = String.format(Locale.US, "%.0f grains/m³", pollen.countGrains),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = InkMuted,
-                                        fontSize = 11.sp
+                            AnimatedVisibility(visible = isPollenSelected) {
+                                Column(modifier = Modifier.padding(top = 8.dp)) {
+                                    val guidance = when (pollen.name) {
+                                        "Grass Pollen" -> "Peaks on warm windy afternoons. Shower and rinse hair after extended outdoor exposure."
+                                        "Birch Pollen" -> "Tree pollens circulate heavily in early morning. Keep bedroom windows shut overnight."
+                                        "Olive Pollen" -> "High allergenicity during late spring. Use sunglasses to protect eyes from airborne grains."
+                                        "Ragweed Pollen" -> "Late summer irritant. Keep vehicular air conditioning set to recirculate mode."
+                                        else -> "Airborne allergen count tracked via European pollen dispersion sensor network."
+                                    }
+                                    Text(
+                                        text = guidance,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = InkMuted,
+                                            fontSize = 10.sp,
+                                            lineHeight = 14.sp
+                                        )
                                     )
-                                )
-                                Text(
-                                    text = pollen.risk.label,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = pollen.risk.color,
-                                        fontSize = 10.sp
-                                    )
-                                )
+                                }
                             }
                         }
                     }

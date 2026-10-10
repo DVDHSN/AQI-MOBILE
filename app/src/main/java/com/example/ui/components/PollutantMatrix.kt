@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.CurrentAirQuality
+import com.example.ui.animation.bounceClickable
 import com.example.ui.theme.*
 import java.util.Locale
 
@@ -32,7 +33,8 @@ private data class PollutantItem(
     val name: String,
     val value: Float,
     val unit: String,
-    val threshold: Float
+    val threshold: Float,
+    val guide: String
 )
 
 @Composable
@@ -54,12 +56,12 @@ fun PollutantMatrix(
 
     val items = remember(current) {
         listOf(
-            PollutantItem("PM2.5", "Fine particles", current.pm25, "μg/m³", 15f),
-            PollutantItem("PM10", "Inhalable dust", current.pm10, "μg/m³", 45f),
-            PollutantItem("O₃", "Ozone", current.ozone, "μg/m³", 100f),
-            PollutantItem("NO₂", "Nitrogen dioxide", current.nitrogenDioxide, "μg/m³", 25f),
-            PollutantItem("SO₂", "Sulfur dioxide", current.sulphurDioxide, "μg/m³", 40f),
-            PollutantItem("CO", "Carbon monoxide", current.carbonMonoxide, "μg/m³", 4000f)
+            PollutantItem("PM2.5", "Fine particles", current.pm25, "μg/m³", 15f, "WHO limit: 15 μg/m³ · Penetrates lungs"),
+            PollutantItem("PM10", "Inhalable dust", current.pm10, "μg/m³", 45f, "WHO limit: 45 μg/m³ · Irritates airways"),
+            PollutantItem("O₃", "Ozone", current.ozone, "μg/m³", 100f, "WHO limit: 100 μg/m³ · Smog from sunlight"),
+            PollutantItem("NO₂", "Nitrogen dioxide", current.nitrogenDioxide, "μg/m³", 25f, "WHO limit: 25 μg/m³ · Vehicle exhaust"),
+            PollutantItem("SO₂", "Sulfur dioxide", current.sulphurDioxide, "μg/m³", 40f, "WHO limit: 40 μg/m³ · Industrial emissions"),
+            PollutantItem("CO", "Carbon monoxide", current.carbonMonoxide, "μg/m³", 4000f, "WHO limit: 4000 μg/m³ · Incomplete combustion")
         )
     }
     val chunkedItems = remember(items) { items.chunked(2) }
@@ -84,10 +86,7 @@ fun PollutantMatrix(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
+                .bounceClickable(scaleDown = 0.98f) {
                     isExpanded = !isExpanded
                 }
                 .padding(vertical = 4.dp),
@@ -280,7 +279,16 @@ private fun PollutantCard(
         label = "pollutantCardBorder"
     )
 
-    Row(
+    val animatedProgress by animateFloatAsState(
+        targetValue = (ratio / 2.0f).coerceIn(0.05f, 1.0f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "pollutantRatioProgress"
+    )
+
+    Column(
         modifier = modifier
             .graphicsLayer {
                 scaleX = scale
@@ -297,59 +305,98 @@ private fun PollutantCard(
                     )
                 } else Modifier
             )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { onClick() }
-            .padding(horizontal = 10.dp, vertical = 8.dp)
-            .testTag("pollutant_card_${item.formula}"),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(statusColor)
+            .bounceClickable(scaleDown = 0.95f) { onClick() }
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMediumLow
                 )
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .testTag("pollutant_card_${item.formula}")
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(statusColor)
+                    )
+                    Text(
+                        text = item.formula,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            color = InkWhite,
+                            fontSize = 12.sp
+                        )
+                    )
+                }
                 Text(
-                    text = item.formula,
+                    text = item.name,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = InkFaint,
+                        fontSize = 9.sp
+                    ),
+                    maxLines = 1
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = String.format(Locale.US, "%.1f", item.value),
                     style = MaterialTheme.typography.titleMedium.copy(
                         color = InkWhite,
-                        fontSize = 12.sp
+                        fontSize = 13.sp
+                    )
+                )
+                Text(
+                    text = item.unit,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = InkFaint,
+                        fontSize = 8.sp
                     )
                 )
             }
-            Text(
-                text = item.name,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = InkFaint,
-                    fontSize = 9.sp
-                ),
-                maxLines = 1
+        }
+
+        // Animated exposure ratio bar
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.5.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(PitchBlack)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(animatedProgress)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(statusColor)
             )
         }
 
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = String.format(Locale.US, "%.1f", item.value),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    color = InkWhite,
-                    fontSize = 13.sp
+        // Expanded Educational Details upon Tap
+        AnimatedVisibility(visible = isSelected) {
+            Column(modifier = Modifier.padding(top = 6.dp)) {
+                Text(
+                    text = item.guide,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = InkMuted,
+                        fontSize = 9.5.sp,
+                        lineHeight = 13.sp
+                    )
                 )
-            )
-            Text(
-                text = item.unit,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = InkFaint,
-                    fontSize = 8.sp
-                )
-            )
+            }
         }
     }
 }

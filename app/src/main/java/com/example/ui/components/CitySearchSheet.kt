@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.LocationItem
+import com.example.ui.animation.bounceClickable
 import com.example.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -195,7 +196,7 @@ fun CitySearchSheet(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(DarkElevated)
-                                .clickable { onSelectLocation(loc) }
+                                .bounceClickable(scaleDown = 0.96f) { onSelectLocation(loc) }
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                                 .testTag("search_result_${loc.id}"),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -222,12 +223,14 @@ fun CitySearchSheet(
                                 }
                             }
 
-                            // Quick Bookmark button
-                            IconButton(
-                                onClick = { onToggleSaveLocation(loc) },
+                            // Quick Bookmark button with tactile spring
+                            Box(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .testTag("search_bookmark_${loc.id}")
+                                    .clip(CircleShape)
+                                    .bounceClickable(scaleDown = 0.88f) { onToggleSaveLocation(loc) }
+                                    .testTag("search_bookmark_${loc.id}"),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = if (loc.isSaved) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,

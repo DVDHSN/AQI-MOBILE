@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,9 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.Icon
@@ -23,7 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import com.example.ui.animation.atmosphericAura
+import com.example.ui.animation.atmosphericParticles
+import com.example.ui.animation.bounceClickable
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,16 +90,19 @@ fun HeroAqiCard(
 
     val finalDisplayScore = if (targetIntValue != null) animatedAqiInt.toString() else displayValue
 
-    // Microinteraction: Bookmark button bounce animation
-    var bookmarkTrigger by remember { mutableStateOf(false) }
-    val bookmarkScale by animateFloatAsState(
-        targetValue = if (bookmarkTrigger) 1.25f else 1.0f,
+    // Microinteraction: Radial Dial Gauge Progress
+    val targetGaugeFraction = when (standard) {
+        AqiStandard.US_EPA -> (current.usAqi / 300f).coerceIn(0.04f, 1.0f)
+        AqiStandard.EUROPEAN -> (current.europeanAqi / 100f).coerceIn(0.04f, 1.0f)
+        AqiStandard.WHO -> ((current.pm25 / 15f) / 4.0f).coerceIn(0.04f, 1.0f)
+    }
+    val gaugeProgress by animateFloatAsState(
+        targetValue = targetGaugeFraction,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            stiffness = Spring.StiffnessLow
         ),
-        finishedListener = { bookmarkTrigger = false },
-        label = "bookmarkBounce"
+        label = "heroGaugeProgress"
     )
 
     // Microinteraction: Standard switch tap scale
@@ -111,6 +122,7 @@ fun HeroAqiCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(DarkSurface)
+            .atmosphericParticles(level.color, particleCount = 8)
             .border(1.dp, HairlineBorder, RoundedCornerShape(20.dp))
             .padding(16.dp)
             .testTag("hero_aqi_card")
@@ -146,20 +158,16 @@ fun HeroAqiCard(
                 }
             }
 
-            IconButton(
-                onClick = {
-                    bookmarkTrigger = true
-                    onToggleSaveLocation(location)
-                },
+            Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .graphicsLayer {
-                        scaleX = bookmarkScale
-                        scaleY = bookmarkScale
-                    }
                     .clip(CircleShape)
                     .background(DarkElevated)
-                    .testTag("toggle_save_location_button")
+                    .bounceClickable {
+                        onToggleSaveLocation(location)
+                    }
+                    .testTag("toggle_save_location_button"),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (location.isSaved) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
@@ -179,63 +187,66 @@ fun HeroAqiCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = standardTapScale
-                        scaleY = standardTapScale
-                    }
                     .clip(RoundedCornerShape(12.dp))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        standardTapTrigger = true
+                    .bounceClickable(scaleDown = 0.95f) {
                         onCycleStandard()
                     }
                     .padding(vertical = 4.dp, horizontal = 4.dp)
                     .testTag("hero_aqi_interactive_readout")
             ) {
-                Text(
-                    text = finalDisplayScore,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        color = InkWhite,
-                        fontSize = 50.sp,
-                        lineHeight = 50.sp
-                    ),
-                    modifier = Modifier.testTag("hero_aqi_value")
+                AqiDialIndicator(
+                    progress = gaugeProgress,
+                    color = level.color,
+                    modifier = Modifier.size(52.dp)
                 )
 
-                Column(
-                    modifier = Modifier.padding(bottom = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    Text(
+                        text = finalDisplayScore,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            color = InkWhite,
+                            fontSize = 46.sp,
+                            lineHeight = 46.sp
+                        ),
+                        modifier = Modifier.testTag("hero_aqi_value")
+                    )
+
+                    Column(
+                        modifier = Modifier.padding(bottom = 3.dp),
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = unitLabel,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    color = EditorialBlue,
+                                    fontSize = 11.sp
+                                )
+                            )
+                            Icon(
+                                imageVector = Icons.Default.SwapHoriz,
+                                contentDescription = "Tap to switch standard",
+                                tint = InkMuted,
+                                modifier = Modifier.size(11.dp)
+                            )
+                        }
                         Text(
-                            text = unitLabel,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                color = EditorialBlue,
-                                fontSize = 12.sp
+                            text = "Tap standard",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = InkFaint,
+                                fontSize = 8.5.sp
                             )
                         )
-                        Icon(
-                            imageVector = Icons.Default.SwapHoriz,
-                            contentDescription = "Tap to switch standard",
-                            tint = InkMuted,
-                            modifier = Modifier.size(12.dp)
-                        )
                     }
-                    Text(
-                        text = "Tap to switch",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = InkFaint,
-                            fontSize = 9.sp
-                        )
-                    )
                 }
             }
 
@@ -277,6 +288,7 @@ fun HeroAqiCard(
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
                             .background(DarkElevated)
+                            .bounceClickable(scaleDown = 0.96f) { /* tactile tap */ }
                             .padding(10.dp)
                     ) {
                         Row(
@@ -284,7 +296,7 @@ fun HeroAqiCard(
                             horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.DirectionsRun,
+                                imageVector = Icons.AutoMirrored.Filled.DirectionsRun,
                                 contentDescription = null,
                                 tint = window.aqiLevel.color,
                                 modifier = Modifier.size(13.dp)
@@ -315,6 +327,7 @@ fun HeroAqiCard(
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
                             .background(DarkElevated)
+                            .bounceClickable(scaleDown = 0.96f) { /* tactile tap */ }
                             .padding(10.dp)
                     ) {
                         Row(
@@ -381,6 +394,7 @@ private fun HeroStatusBadge(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
+            .atmosphericAura(level.color, minAlpha = 0.1f, maxAlpha = 0.26f)
             .drawBehind {
                 drawRoundRect(
                     color = level.color.copy(alpha = badgeAlpha),
@@ -401,3 +415,61 @@ private fun HeroStatusBadge(
         )
     }
 }
+
+@Composable
+private fun AqiDialIndicator(
+    progress: Float,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val strokeWidth = 4.dp.toPx()
+        val diameter = size.minDimension - strokeWidth * 2f
+        if (diameter <= 0f) return@Canvas
+
+        val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+        val arcSize = Size(diameter, diameter)
+
+        // Background track (240 degrees starting from 150°)
+        drawArc(
+            color = DarkElevated,
+            startAngle = 150f,
+            sweepAngle = 240f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+        )
+
+        // Active sweep arc with smooth color
+        val sweep = 240f * progress.coerceIn(0.04f, 1f)
+        drawArc(
+            color = color,
+            startAngle = 150f,
+            sweepAngle = sweep,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+        )
+
+        // Glowing tip indicator dot
+        val angleRad = Math.toRadians((150f + sweep).toDouble())
+        val radius = diameter / 2f
+        val centerPoint = Offset(size.width / 2f, size.height / 2f)
+        val dotX = centerPoint.x + radius * kotlin.math.cos(angleRad).toFloat()
+        val dotY = centerPoint.y + radius * kotlin.math.sin(angleRad).toFloat()
+
+        drawCircle(
+            color = color.copy(alpha = 0.35f),
+            radius = strokeWidth * 1.5f,
+            center = Offset(dotX, dotY)
+        )
+        drawCircle(
+            color = InkWhite,
+            radius = strokeWidth * 0.7f,
+            center = Offset(dotX, dotY)
+        )
+    }
+}
+

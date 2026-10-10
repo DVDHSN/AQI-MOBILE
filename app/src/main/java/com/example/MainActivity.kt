@@ -34,6 +34,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.AppMode
+import com.example.ui.animation.bounceClickable
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AqiUiState
@@ -298,7 +299,9 @@ fun AtmosphereAppContent(
                                             containerColor = InkWhite,
                                             contentColor = PitchBlack
                                         ),
-                                        modifier = Modifier.testTag("retry_button")
+                                        modifier = Modifier
+                                            .bounceClickable(scaleDown = 0.94f) { onRefresh() }
+                                            .testTag("retry_button")
                                     ) {
                                         Text(
                                             text = "Retry",
@@ -319,26 +322,30 @@ fun AtmosphereAppContent(
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 // 1. Unified Hero AQI Card with Direct Tap Standards Switcher
-                                item(key = "hero_aqi_item") {
+                                item(key = "hero_aqi_item", contentType = "hero") {
                                     HeroAqiCard(
                                         location = report.location,
                                         current = report.current,
                                         standard = uiState.aqiStandard,
                                         drivers = report.drivers,
                                         onToggleSaveLocation = onToggleSaveLocation,
-                                        onCycleStandard = onCycleStandard
+                                        onCycleStandard = onCycleStandard,
+                                        modifier = Modifier.animateItem()
                                     )
                                 }
 
                                 // 2. Pollen & Seasonal Allergen Index Card
                                 report.allergenReport?.let { allergen ->
-                                    item(key = "pollen_allergen_item") {
-                                        PollenAllergenCard(report = allergen)
+                                    item(key = "pollen_allergen_item", contentType = "pollen") {
+                                        PollenAllergenCard(
+                                            report = allergen,
+                                            modifier = Modifier.animateItem()
+                                        )
                                     }
                                 }
 
                                 // 3. Interactive Trend Chart (with 7-Day History & 5-Day Forecast)
-                                item(key = "trend_chart_item") {
+                                item(key = "trend_chart_item", contentType = "trend") {
                                     TrendChart(
                                         historyData = report.hourlyHistory,
                                         forecastData = report.hourlyForecast,
@@ -347,30 +354,40 @@ fun AtmosphereAppContent(
                                         selectedMetric = uiState.selectedMetric,
                                         onSelectMetric = onSelectMetric,
                                         scrubbedPoint = uiState.scrubbedPoint,
-                                        onScrubPoint = onScrubPoint
+                                        onScrubPoint = onScrubPoint,
+                                        modifier = Modifier.animateItem()
                                     )
                                 }
 
                                 // 4. 30-Day Air Quality Calendar Heatmap (Expandable directly below Trend Chart)
                                 report.heatmapReport?.let { heatmap ->
-                                    item(key = "monthly_heatmap_item") {
-                                        MonthlyHeatmapCard(report = heatmap)
+                                    item(key = "monthly_heatmap_item", contentType = "heatmap") {
+                                        MonthlyHeatmapCard(
+                                            report = heatmap,
+                                            modifier = Modifier.animateItem()
+                                        )
                                     }
                                 }
 
                                 // 5. Compact Pollutant Matrix
-                                item(key = "pollutant_matrix_item") {
-                                    PollutantMatrix(current = report.current)
+                                item(key = "pollutant_matrix_item", contentType = "pollutants") {
+                                    PollutantMatrix(
+                                        current = report.current,
+                                        modifier = Modifier.animateItem()
+                                    )
                                 }
 
                                 // 6. Actionable Health Guidelines
-                                item(key = "health_advisory_item") {
-                                    HealthAdvisorySection(level = report.current.level)
+                                item(key = "health_advisory_item", contentType = "health") {
+                                    HealthAdvisorySection(
+                                        level = report.current.level,
+                                        modifier = Modifier.animateItem()
+                                    )
                                 }
 
                                 // Bottom breathing spacer
-                                item(key = "bottom_spacer_item") {
-                                    Spacer(modifier = Modifier.height(20.dp))
+                                item(key = "bottom_spacer_item", contentType = "spacer") {
+                                    Spacer(modifier = Modifier.height(20.dp).animateItem())
                                 }
                             }
                         }

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.AirQualityReport
 import com.example.data.model.ChartMetric
 import com.example.data.model.LocationItem
+import com.example.ui.animation.bounceClickable
 import com.example.ui.theme.*
 import java.util.Locale
 import kotlin.math.abs
@@ -79,22 +80,11 @@ fun CityDuelScreen(
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(availableLocations, key = { "a_${it.id}" }) { loc ->
                             val isSel = loc.id == cityA.id
-                            val chipScale by animateFloatAsState(
-                                targetValue = if (isSel) 1.03f else 1.0f,
-                                label = "duelChipA_${loc.id}"
-                            )
                             Box(
                                 modifier = Modifier
-                                    .graphicsLayer {
-                                        scaleX = chipScale
-                                        scaleY = chipScale
-                                    }
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (isSel) EditorialBlue else DarkElevated)
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null
-                                    ) { onSelectCityA(loc) }
+                                    .bounceClickable(scaleDown = 0.94f) { onSelectCityA(loc) }
                                     .padding(horizontal = 9.dp, vertical = 5.dp)
                             ) {
                                 Text(
@@ -118,22 +108,11 @@ fun CityDuelScreen(
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(availableLocations, key = { "b_${it.id}" }) { loc ->
                             val isSel = loc.id == cityB.id
-                            val chipScale by animateFloatAsState(
-                                targetValue = if (isSel) 1.03f else 1.0f,
-                                label = "duelChipB_${loc.id}"
-                            )
                             Box(
                                 modifier = Modifier
-                                    .graphicsLayer {
-                                        scaleX = chipScale
-                                        scaleY = chipScale
-                                    }
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (isSel) AqiModerate else DarkElevated)
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null
-                                    ) { onSelectCityB(loc) }
+                                    .bounceClickable(scaleDown = 0.94f) { onSelectCityB(loc) }
                                     .padding(horizontal = 9.dp, vertical = 5.dp)
                             ) {
                                 Text(
@@ -368,6 +347,7 @@ private fun ComparisonMetricRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(DarkElevated)
+            .bounceClickable(scaleDown = 0.98f) { /* tactile inspection */ }
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
