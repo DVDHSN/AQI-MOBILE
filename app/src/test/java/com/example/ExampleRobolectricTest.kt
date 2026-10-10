@@ -97,7 +97,7 @@ class ExampleRobolectricTest {
         val viewModel = AqiViewModel(app)
         assertNotNull(viewModel)
         assertEquals(AppMode.DISPATCH, viewModel.uiState.value.appMode)
-        assertEquals(TimelineMode.PAST_24_HOURS, viewModel.uiState.value.timelineMode)
+        assertEquals(TimelineMode.HISTORY, viewModel.uiState.value.timelineMode)
 
         // Mode switch
         viewModel.setAppMode(AppMode.DUEL)
@@ -106,9 +106,6 @@ class ExampleRobolectricTest {
         assertNotNull(viewModel.uiState.value.duelCityB)
 
         // Timeline switch
-        viewModel.setTimelineMode(TimelineMode.HISTORY)
-        assertEquals(TimelineMode.HISTORY, viewModel.uiState.value.timelineMode)
-
         viewModel.setTimelineMode(TimelineMode.FORECAST)
         assertEquals(TimelineMode.FORECAST, viewModel.uiState.value.timelineMode)
     }

@@ -67,13 +67,7 @@ fun TrendChart(
         label = "trendChevronRotation"
     )
 
-    val activeData = remember(timelineMode, historyData, forecastData) {
-        when (timelineMode) {
-            TimelineMode.PAST_24_HOURS -> historyData.takeLast(24)
-            TimelineMode.HISTORY -> historyData
-            TimelineMode.FORECAST -> forecastData
-        }
-    }
+    val activeData = if (timelineMode == TimelineMode.HISTORY) historyData else forecastData
 
     val metricValues = remember(activeData, selectedMetric) {
         activeData.map { point ->
@@ -104,7 +98,7 @@ fun TrendChart(
         localScrubbedPoint = null
     }
 
-    val activePoint = localScrubbedPoint ?: scrubbedPoint ?: (if (timelineMode == TimelineMode.FORECAST) activeData.firstOrNull() else activeData.lastOrNull())
+    val activePoint = localScrubbedPoint ?: scrubbedPoint ?: (if (timelineMode == TimelineMode.HISTORY) activeData.lastOrNull() else activeData.firstOrNull())
     val activeValue = activePoint?.let { selectedMetric.getValue(it) } ?: 0f
 
     Column(
@@ -145,17 +139,9 @@ fun TrendChart(
 
                 Text(
                     text = if (isExpanded) {
-                        when (timelineMode) {
-                            TimelineMode.PAST_24_HOURS -> "24-Hour Continuous Hourly Trend (Past 24h)"
-                            TimelineMode.HISTORY -> "7-Day Historical Trend Analysis"
-                            TimelineMode.FORECAST -> "5-Day Predictive Hourly Outlook"
-                        }
+                        if (timelineMode == TimelineMode.HISTORY) "7-Day Historical Analysis" else "5-Day Predictive Outlook"
                     } else {
-                        val modeLabel = when (timelineMode) {
-                            TimelineMode.PAST_24_HOURS -> "Past 24H"
-                            TimelineMode.HISTORY -> "Past 7D"
-                            TimelineMode.FORECAST -> "Forecast 5D"
-                        }
+                        val modeLabel = if (timelineMode == TimelineMode.HISTORY) "Past 7D" else "Forecast 5D"
                         "$modeLabel · ${selectedMetric.shortLabel}: ${String.format(Locale.US, "%.1f %s", activeValue, selectedMetric.unit)}"
                     },
                     style = MaterialTheme.typography.labelSmall.copy(
@@ -214,11 +200,7 @@ fun TrendChart(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val modeColor = when (timelineMode) {
-                        TimelineMode.PAST_24_HOURS -> EditorialBlue
-                        TimelineMode.HISTORY -> AqiGood
-                        TimelineMode.FORECAST -> AqiModerate
-                    }
+                    val modeColor = if (timelineMode == TimelineMode.HISTORY) EditorialBlue else AqiModerate
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -226,11 +208,7 @@ fun TrendChart(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = when (timelineMode) {
-                                TimelineMode.PAST_24_HOURS -> "24H PAST"
-                                TimelineMode.HISTORY -> "7D PAST"
-                                TimelineMode.FORECAST -> "5D FORECAST"
-                            },
+                            text = if (timelineMode == TimelineMode.HISTORY) "7D PAST" else "5D FORECAST",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = modeColor,
                                 fontSize = 9.sp
@@ -281,11 +259,7 @@ fun TrendChart(
                 ) {
                     TimelineMode.entries.forEach { mode ->
                         val isSelected = mode == timelineMode
-                        val label = when (mode) {
-                            TimelineMode.PAST_24_HOURS -> "24H Past"
-                            TimelineMode.HISTORY -> "7D Past"
-                            TimelineMode.FORECAST -> "5D Forecast"
-                        }
+                        val label = if (mode == TimelineMode.HISTORY) "7D Past" else "5D Forecast"
 
                         Box(
                             modifier = Modifier
@@ -518,19 +492,12 @@ fun TrendChart(
                             geometryCache.fillPath.close()
                         }
 
-                        val gradientColor = when (timelineMode) {
-                            TimelineMode.PAST_24_HOURS -> EditorialBlue
-                            TimelineMode.HISTORY -> AqiGood
-                            TimelineMode.FORECAST -> AqiModerate
-                        }
-
-                        // Recharts-inspired linear gradient fill below line
+                        val gradientColor = if (timelineMode == TimelineMode.HISTORY) EditorialBlue else AqiModerate
                         drawPath(
                             path = geometryCache.fillPath,
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    gradientColor.copy(alpha = 0.28f),
-                                    gradientColor.copy(alpha = 0.05f),
+                                    gradientColor.copy(alpha = 0.2f),
                                     Color.Transparent
                                 ),
                                 startY = 0f,
@@ -538,34 +505,13 @@ fun TrendChart(
                             )
                         )
 
-                        // Smooth line stroke
                         drawPath(
                             path = geometryCache.linePath,
                             color = gradientColor,
-                            style = Stroke(width = 2.4f, cap = StrokeCap.Round)
+                            style = Stroke(width = 2.2f, cap = StrokeCap.Round)
                         )
 
-                        // For 24-hour mode, draw subtle Recharts-like data dots at 3-hour intervals
-                        if (timelineMode == TimelineMode.PAST_24_HOURS && pointsCount > 1) {
-                            val stepX = width / (pointsCount - 1).toFloat()
-                            for (i in 0 until pointsCount step 3) {
-                                val dotX = i * stepX
-                                val dotY = height - ((metricValues[i] - minVal) / (maxVal - minVal) * height)
-                                    .coerceIn(0f, height)
-                                drawCircle(
-                                    color = DarkElevated,
-                                    radius = 3.dp.toPx(),
-                                    center = Offset(dotX, dotY)
-                                )
-                                drawCircle(
-                                    color = gradientColor,
-                                    radius = 2.dp.toPx(),
-                                    center = Offset(dotX, dotY)
-                                )
-                            }
-                        }
-
-                        // Microinteraction: Scrub cursor with glowing indicator dot and tooltip guide
+                        // Microinteraction: Scrub cursor with glowing indicator dot
                         val currentScrub = localScrubbedPoint ?: scrubbedPoint
                         currentScrub?.let { scrub ->
                             val scrubIndex = activeData.indexOfFirst { it.rawTime == scrub.rawTime }
@@ -584,13 +530,13 @@ fun TrendChart(
 
                                 // Outer breathing glow circle
                                 drawCircle(
-                                    color = gradientColor.copy(alpha = 0.25f),
+                                    color = gradientColor.copy(alpha = 0.22f),
                                     radius = haloPulse.dp.toPx(),
                                     center = Offset(scrubX, scrubY)
                                 )
 
                                 drawCircle(
-                                    color = gradientColor.copy(alpha = 0.6f),
+                                    color = gradientColor.copy(alpha = 0.5f),
                                     radius = 5.dp.toPx(),
                                     center = Offset(scrubX, scrubY)
                                 )
@@ -612,42 +558,25 @@ fun TrendChart(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // X-axis Time / Day markers
+                // X-axis Day markers
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val sampledMarkers = remember(activeData, timelineMode) {
-                        if (timelineMode == TimelineMode.PAST_24_HOURS) {
-                            if (activeData.size >= 6) {
-                                val step = activeData.size / 5
-                                (0..4).mapNotNull { idx ->
-                                    activeData.getOrNull((idx * step).coerceAtMost(activeData.size - 1))
-                                }
-                            } else {
-                                activeData
+                    val sampledMarkers = remember(activeData) {
+                        if (activeData.size >= 5) {
+                            val step = activeData.size / 5
+                            (0..4).mapNotNull { idx ->
+                                activeData.getOrNull((idx * step).coerceAtMost(activeData.size - 1))
                             }
                         } else {
-                            if (activeData.size >= 5) {
-                                val step = activeData.size / 5
-                                (0..4).mapNotNull { idx ->
-                                    activeData.getOrNull((idx * step).coerceAtMost(activeData.size - 1))
-                                }
-                            } else {
-                                activeData
-                            }
+                            activeData
                         }
                     }
 
                     sampledMarkers.forEach { marker ->
-                        val markerLabel = if (timelineMode == TimelineMode.PAST_24_HOURS) {
-                            marker.displayHour
-                        } else {
-                            "${marker.dayOfWeek} ${marker.displayDate.takeLast(2)}"
-                        }
-
                         Text(
-                            text = markerLabel,
+                            text = "${marker.dayOfWeek} ${marker.displayDate.takeLast(2)}",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = InkFaint,
                                 fontSize = 9.sp

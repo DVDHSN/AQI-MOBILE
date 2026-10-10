@@ -278,7 +278,6 @@ data class HourlyDataPoint(
 )
 
 enum class TimelineMode(val title: String) {
-    PAST_24_HOURS("24-HOUR TREND"),
     HISTORY("7-DAY HISTORY"),
     FORECAST("5-DAY FORECAST")
 }

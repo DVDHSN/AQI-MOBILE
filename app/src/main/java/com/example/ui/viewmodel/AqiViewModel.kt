@@ -35,7 +35,7 @@ data class AqiUiState(
     val isSearching: Boolean = false,
     // Feature States
     val appMode: AppMode = AppMode.DISPATCH,
-    val timelineMode: TimelineMode = TimelineMode.PAST_24_HOURS,
+    val timelineMode: TimelineMode = TimelineMode.HISTORY,
     val duelCityA: LocationItem,
     val duelCityB: LocationItem,
     val duelReportA: AirQualityReport? = null,
