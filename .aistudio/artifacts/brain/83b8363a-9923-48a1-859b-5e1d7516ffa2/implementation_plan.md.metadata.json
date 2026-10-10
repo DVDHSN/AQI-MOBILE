@@ -1,0 +1,6 @@
+{
+  "summary":  "Comprehensive architecture and UX blueprint for expanding fluid microinteractions and animations across Atmosphere with zero-recomposition GPU hardware acceleration. Covers bouncy spring tap interactions, ambient atmospheric particle effects, staggered card reveals, icon state morphs, and draw-phase performance optimizations across all cards, tiles, charts, and buttons.",
+  "updatedAt":  "2026-10-10T11:03:19.009635474Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

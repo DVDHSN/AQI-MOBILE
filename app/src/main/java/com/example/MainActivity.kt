@@ -15,6 +15,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -103,6 +105,7 @@ class MainActivity : ComponentActivity() {
                         onRequestCurrentLocation = onGpsClick,
                         onOpenSearch = { viewModel.setSearchSheetOpen(true) },
                         onSelectMetric = viewModel::selectMetric,
+                        onCycleStandard = viewModel::cycleAqiStandard,
                         onScrubPoint = viewModel::onScrubPoint,
                         onSelectDuelCityA = viewModel::selectDuelCityA,
                         onSelectDuelCityB = viewModel::selectDuelCityB,
@@ -129,6 +132,7 @@ fun AtmosphereAppContent(
     onRequestCurrentLocation: () -> Unit,
     onOpenSearch: () -> Unit,
     onSelectMetric: (com.example.data.model.ChartMetric) -> Unit,
+    onCycleStandard: () -> Unit,
     onScrubPoint: (com.example.data.model.HourlyDataPoint?) -> Unit,
     onSelectDuelCityA: (com.example.data.model.LocationItem) -> Unit,
     onSelectDuelCityB: (com.example.data.model.LocationItem) -> Unit,
@@ -144,7 +148,7 @@ fun AtmosphereAppContent(
             .background(PitchBlack)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Masthead with [ DISPATCH | CITY DUEL ] Mode Switch
+            // Masthead with Overview / Compare switcher
             TopMasthead(
                 appMode = uiState.appMode,
                 onSelectAppMode = onSelectAppMode,
@@ -158,9 +162,11 @@ fun AtmosphereAppContent(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(DarkElevated)
-                            .border(1.dp, EditorialBlue)
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                            .border(1.dp, HairlineBorderLight, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -215,7 +221,7 @@ fun AtmosphereAppContent(
                 }
 
                 AppMode.DISPATCH -> {
-                    // Megacity & Saved Chips Bar with GPS Button
+                    // Location Pill Chips Bar with GPS & Search
                     CitySelectorBar(
                         locations = uiState.pinnedLocations,
                         activeLocation = uiState.activeLocation,
@@ -244,10 +250,10 @@ fun AtmosphereAppContent(
                                         modifier = Modifier.size(36.dp)
                                     )
                                     Text(
-                                        text = "CONNECTING TO OPEN-METEO ATMOSPHERIC GRID...",
-                                        style = MaterialTheme.typography.labelSmall.copy(
+                                        text = "Loading air quality...",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
                                             color = InkMuted,
-                                            letterSpacing = 1.sp
+                                            fontSize = 13.sp
                                         )
                                     )
                                 }
@@ -264,26 +270,30 @@ fun AtmosphereAppContent(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clip(RoundedCornerShape(20.dp))
                                         .background(DarkSurface)
-                                        .border(1.dp, HairlineBorder)
-                                        .padding(20.dp),
+                                        .border(1.dp, HairlineBorder, RoundedCornerShape(20.dp))
+                                        .padding(24.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
                                     Text(
-                                        text = "COMMUNICATION FAILURE // OPEN-METEO API",
-                                        style = MaterialTheme.typography.labelLarge.copy(
-                                            color = AqiUnhealthy,
-                                            letterSpacing = 1.sp
+                                        text = "Unable to Load Data",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            color = InkWhite,
+                                            fontSize = 16.sp
                                         )
                                     )
                                     Text(
                                         text = uiState.errorMessage,
-                                        style = MaterialTheme.typography.bodyMedium.copy(color = InkMuted)
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = InkMuted,
+                                            fontSize = 13.sp
+                                        )
                                     )
                                     Button(
                                         onClick = onRefresh,
-                                        shape = MaterialTheme.shapes.extraSmall,
+                                        shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = InkWhite,
                                             contentColor = PitchBlack
@@ -291,10 +301,8 @@ fun AtmosphereAppContent(
                                         modifier = Modifier.testTag("retry_button")
                                     ) {
                                         Text(
-                                            text = "RETRY TRANSMISSION",
-                                            style = MaterialTheme.typography.labelLarge.copy(
-                                                letterSpacing = 1.sp
-                                            )
+                                            text = "Retry",
+                                            style = MaterialTheme.typography.labelMedium
                                         )
                                     }
                                 }
@@ -307,28 +315,30 @@ fun AtmosphereAppContent(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .testTag("main_content_list"),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                // 1. Hero AQI Card with Save button & GPS status
-                                item {
+                                // 1. Unified Hero AQI Card with Direct Tap Standards Switcher
+                                item(key = "hero_aqi_item") {
                                     HeroAqiCard(
                                         location = report.location,
                                         current = report.current,
-                                        timezone = report.timezone,
-                                        onToggleSaveLocation = onToggleSaveLocation
+                                        standard = uiState.aqiStandard,
+                                        drivers = report.drivers,
+                                        onToggleSaveLocation = onToggleSaveLocation,
+                                        onCycleStandard = onCycleStandard
                                     )
                                 }
 
-                                // 2. Atmospheric Drivers Strip (Dominant Driver, Cleanest Window, Wind Dispersion)
-                                report.drivers?.let { drivers ->
-                                    item {
-                                        AtmosphericDriversSection(drivers = drivers)
+                                // 2. Pollen & Seasonal Allergen Index Card
+                                report.allergenReport?.let { allergen ->
+                                    item(key = "pollen_allergen_item") {
+                                        PollenAllergenCard(report = allergen)
                                     }
                                 }
 
-                                // 3. Interactive Trend Chart (with 7-Day History & 5-Day Forecast toggle tabs)
-                                item {
+                                // 3. Interactive Trend Chart (with 7-Day History & 5-Day Forecast)
+                                item(key = "trend_chart_item") {
                                     TrendChart(
                                         historyData = report.hourlyHistory,
                                         forecastData = report.hourlyForecast,
@@ -341,42 +351,26 @@ fun AtmosphereAppContent(
                                     )
                                 }
 
-                                // 4. Criteria Pollutant Matrix
-                                item {
+                                // 4. 30-Day Air Quality Calendar Heatmap (Expandable directly below Trend Chart)
+                                report.heatmapReport?.let { heatmap ->
+                                    item(key = "monthly_heatmap_item") {
+                                        MonthlyHeatmapCard(report = heatmap)
+                                    }
+                                }
+
+                                // 5. Compact Pollutant Matrix
+                                item(key = "pollutant_matrix_item") {
                                     PollutantMatrix(current = report.current)
                                 }
 
-                                // 5. Actionable Health Guidelines
-                                item {
+                                // 6. Actionable Health Guidelines
+                                item(key = "health_advisory_item") {
                                     HealthAdvisorySection(level = report.current.level)
                                 }
 
-                                // 6. Editorial Footer Band
-                                item {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(DarkSurface)
-                                            .border(1.dp, HairlineBorder)
-                                            .padding(16.dp)
-                                    ) {
-                                        Text(
-                                            text = "ATMOSPHERE // DATA SPECIFICATION",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                color = InkFaint,
-                                                letterSpacing = 1.sp
-                                            )
-                                        )
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = "All meteorological and chemical dispersion readings are queried in real time from Open-Meteo European Centre for Medium-Range Weather Forecasts (ECMWF) and CAMS global atmospheric models. No synthetic or simulated figures are generated.",
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                color = InkFaint,
-                                                lineHeight = 18.sp
-                                            )
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(24.dp))
+                                // Bottom breathing spacer
+                                item(key = "bottom_spacer_item") {
+                                    Spacer(modifier = Modifier.height(20.dp))
                                 }
                             }
                         }

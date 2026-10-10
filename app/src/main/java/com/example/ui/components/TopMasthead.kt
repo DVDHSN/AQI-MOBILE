@@ -2,17 +2,20 @@ package com.example.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,91 +45,110 @@ fun TopMasthead(
         modifier = modifier
             .fillMaxWidth()
             .background(PitchBlack)
+            .padding(horizontal = 14.dp, vertical = 6.dp)
     ) {
-        // Top Brand Row
+        // Main Masthead Bar (Tuned for 6.3" phone viewports)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "ATMOSPHERE",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        letterSpacing = 2.5.sp,
-                        color = InkWhite,
-                        fontSize = 18.sp
-                    ),
-                    modifier = Modifier.testTag("masthead_title")
-                )
-                Text(
-                    text = "GLOBAL ENVIRONMENTAL DISPATCH // OPEN-METEO",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        letterSpacing = 0.8.sp,
-                        color = InkFaint,
-                        fontSize = 9.sp
-                    ),
-                    maxLines = 1
-                )
-            }
+            Text(
+                text = "Atmosphere",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    letterSpacing = 0.5.sp,
+                    color = InkWhite,
+                    fontSize = 20.sp
+                ),
+                modifier = Modifier.testTag("masthead_title")
+            )
 
-            IconButton(
-                onClick = onRefresh,
-                enabled = !isRefreshing,
+            // Segmented Mode Switcher (Pill style with animated scale microinteractions)
+            Row(
                 modifier = Modifier
-                    .size(36.dp)
-                    .testTag("refresh_button")
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(DarkSurface)
+                    .padding(2.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh data",
-                    tint = if (isRefreshing) EditorialBlue else InkWhite,
-                    modifier = Modifier.rotate(if (isRefreshing) rotation else 0f)
-                )
-            }
-        }
-
-        // Dedicated Mode Tabs Row (Full-width segmented control, zero horizontal squeeze)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 10.dp)
-                .border(1.dp, HairlineBorder)
-                .background(DarkSurface)
-        ) {
-            AppMode.entries.forEach { mode ->
-                val isSelected = mode == appMode
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(if (isSelected) InkWhite else DarkSurface)
-                        .clickable { onSelectAppMode(mode) }
-                        .padding(vertical = 8.dp)
-                        .testTag("app_mode_${mode.name}"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = mode.title,
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            color = if (isSelected) PitchBlack else InkMuted,
-                            fontSize = 11.sp,
-                            letterSpacing = 1.sp
+                AppMode.entries.forEach { mode ->
+                    val isSelected = mode == appMode
+                    val modeLabel = if (mode == AppMode.DISPATCH) "Overview" else "Compare"
+                    val pillScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.02f else 0.98f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
                         ),
-                        maxLines = 1
+                        label = "mastheadMode_${mode.name}"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = pillScale
+                                scaleY = pillScale
+                            }
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (isSelected) DarkElevated else DarkSurface)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onSelectAppMode(mode) }
+                            .padding(horizontal = 11.dp, vertical = 5.dp)
+                            .testTag("app_mode_${mode.name}"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = modeLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = if (isSelected) InkWhite else InkMuted,
+                                fontSize = 11.sp,
+                                letterSpacing = 0.3.sp
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(3.dp))
+
+                // Refresh Button inside header with tactile microinteraction
+                var refreshTrigger by remember { mutableStateOf(false) }
+                val refreshScale by animateFloatAsState(
+                    targetValue = if (refreshTrigger) 0.85f else 1.0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    ),
+                    finishedListener = { refreshTrigger = false },
+                    label = "refreshButtonScale"
+                )
+
+                IconButton(
+                    onClick = {
+                        refreshTrigger = true
+                        onRefresh()
+                    },
+                    enabled = !isRefreshing,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .graphicsLayer {
+                            scaleX = refreshScale
+                            scaleY = refreshScale
+                        }
+                        .clip(CircleShape)
+                        .testTag("refresh_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh data",
+                        tint = if (isRefreshing) EditorialBlue else InkMuted,
+                        modifier = Modifier
+                            .size(15.dp)
+                            .rotate(if (isRefreshing) rotation else 0f)
                     )
                 }
             }
         }
-
-        // Hairline divider
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(HairlineBorder)
-        )
     }
 }

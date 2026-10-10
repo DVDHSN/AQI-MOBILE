@@ -7,6 +7,7 @@ import com.example.data.location.LocationTracker
 import com.example.data.model.*
 import com.example.data.repository.AirQualityRepository
 import com.example.data.storage.SavedLocationsPreferences
+import com.example.widget.AqiAppWidgetProvider
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,12 +27,13 @@ data class AqiUiState(
     val savedLocations: List<LocationItem> = emptyList(),
     val pinnedLocations: List<LocationItem> = emptyList(),
     val selectedMetric: ChartMetric = ChartMetric.US_AQI,
+    val aqiStandard: AqiStandard = AqiStandard.US_EPA,
     val scrubbedPoint: HourlyDataPoint? = null,
     val isSearchSheetOpen: Boolean = false,
     val searchQuery: String = "",
     val searchResults: List<LocationItem> = emptyList(),
     val isSearching: Boolean = false,
-    // New Feature States
+    // Feature States
     val appMode: AppMode = AppMode.DISPATCH,
     val timelineMode: TimelineMode = TimelineMode.HISTORY,
     val duelCityA: LocationItem,
@@ -99,6 +101,15 @@ class AqiViewModel @JvmOverloads constructor(
 
     fun setTimelineMode(mode: TimelineMode) {
         _uiState.update { it.copy(timelineMode = mode, scrubbedPoint = null) }
+    }
+
+    fun cycleAqiStandard() {
+        val nextStandard = when (_uiState.value.aqiStandard) {
+            AqiStandard.US_EPA -> AqiStandard.EUROPEAN
+            AqiStandard.EUROPEAN -> AqiStandard.WHO
+            AqiStandard.WHO -> AqiStandard.US_EPA
+        }
+        _uiState.update { it.copy(aqiStandard = nextStandard) }
     }
 
     fun selectDuelCityA(location: LocationItem) {
@@ -216,10 +227,11 @@ class AqiViewModel @JvmOverloads constructor(
         val currentLoc = _uiState.value.activeLocation
         _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
         viewModelScope.launch {
-            val result = repository.fetchAirQuality(currentLoc)
+            val result = repository.fetchAirQuality(currentLoc, forceRefresh = true)
             _uiState.update { state ->
                 result.fold(
                     onSuccess = { report ->
+                        updateWidget(report)
                         state.copy(
                             report = report,
                             isLoading = false,
@@ -264,20 +276,16 @@ class AqiViewModel @JvmOverloads constructor(
             _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
             return
         }
+
         searchJob = viewModelScope.launch {
-            delay(350)
+            delay(300)
             _uiState.update { it.copy(isSearching = true) }
             val result = repository.searchLocations(query)
             _uiState.update { state ->
-                result.fold(
-                    onSuccess = { list ->
-                        val annotatedList = list.map { loc ->
-                            loc.copy(isSaved = preferences.isLocationSaved(loc.id))
-                        }
-                        state.copy(searchResults = annotatedList, isSearching = false)
-                    },
-                    onFailure = {
-                        state.copy(searchResults = emptyList(), isSearching = false)
+                state.copy(
+                    isSearching = false,
+                    searchResults = result.getOrDefault(emptyList()).map { item ->
+                        item.copy(isSaved = preferences.isLocationSaved(item.id))
                     }
                 )
             }
@@ -311,6 +319,7 @@ class AqiViewModel @JvmOverloads constructor(
             _uiState.update { state ->
                 result.fold(
                     onSuccess = { report ->
+                        updateWidget(report)
                         state.copy(
                             report = report,
                             isLoading = false,
@@ -327,6 +336,24 @@ class AqiViewModel @JvmOverloads constructor(
                     }
                 )
             }
+        }
+    }
+
+    private fun updateWidget(report: AirQualityReport) {
+        try {
+            val aqi = report.current.usAqi.toInt()
+            val bestWindow = report.drivers?.cleanestWindow?.let {
+                "Best window: ${it.startHour} - ${it.endHour}"
+            } ?: "Air conditions updated"
+            AqiAppWidgetProvider.pushWidgetUpdate(
+                context = getApplication(),
+                locationName = report.location.name,
+                aqi = aqi,
+                level = report.current.level,
+                bestWindowText = bestWindow
+            )
+        } catch (_: Exception) {
+            // Widget update failure is non-fatal
         }
     }
 }

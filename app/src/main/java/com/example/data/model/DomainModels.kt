@@ -2,7 +2,6 @@ package com.example.data.model
 
 import androidx.compose.ui.graphics.Color
 import com.example.ui.theme.*
-
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
@@ -18,6 +17,16 @@ data class LocationItem(
 ) {
     val displayName: String
         get() = if (region.isNullOrBlank()) "$name, $country" else "$name, $region, $country"
+}
+
+enum class AqiStandard(
+    val shortLabel: String,
+    val fullTitle: String,
+    val description: String
+) {
+    US_EPA("US AQI", "US Air Quality Index", "0–500 standard scale"),
+    EUROPEAN("EUR AQI", "European Air Quality Index", "1–5 standard scale"),
+    WHO("WHO Standard", "WHO PM2.5 Guideline", "Ratio relative to WHO 24h limit (15 μg/m³)")
 }
 
 enum class AqiLevel(
@@ -110,8 +119,60 @@ enum class AqiLevel(
                 else -> HAZARDOUS
             }
         }
+
+        fun fromEuropeanAqi(value: Float?): AqiLevel {
+            val v = (value ?: 1f).toInt()
+            return when (v) {
+                1 -> GOOD
+                2 -> MODERATE
+                3 -> SENSITIVE
+                4 -> UNHEALTHY
+                5 -> VERY_UNHEALTHY
+                else -> if (v < 1) GOOD else HAZARDOUS
+            }
+        }
     }
 }
+
+enum class AllergenRiskLevel(
+    val label: String,
+    val color: Color,
+    val advice: String
+) {
+    LOW("Low Risk", AqiGood, "Negligible allergen count; ideal for outdoors."),
+    MODERATE("Moderate Risk", AqiModerate, "Mild sensitivity possible for asthma or hay fever sufferers."),
+    ELEVATED("Elevated Risk", AqiSensitive, "Higher pollen density; sunglasses and preventative medication advised."),
+    HIGH("High Risk", AqiUnhealthy, "Substantial allergen dispersion; keep windows closed.")
+}
+
+data class PollenItem(
+    val name: String,
+    val countGrains: Float,
+    val risk: AllergenRiskLevel
+)
+
+data class AllergenReport(
+    val overallRisk: AllergenRiskLevel,
+    val dominantPollen: String,
+    val pollens: List<PollenItem>
+)
+
+data class DailyHeatmapPoint(
+    val date: String,
+    val displayDate: String,
+    val dayOfWeek: String,
+    val avgAqi: Float,
+    val level: AqiLevel
+)
+
+data class MonthlyHeatmapReport(
+    val days: List<DailyHeatmapPoint>,
+    val goodDaysCount: Int,
+    val moderateDaysCount: Int,
+    val degradedDaysCount: Int,
+    val trendComparisonPercent: Int,
+    val trendInsight: String
+)
 
 enum class ChartMetric(
     val title: String,
@@ -184,7 +245,13 @@ data class CurrentAirQuality(
     val ozone: Float,
     val nitrogenDioxide: Float,
     val sulphurDioxide: Float,
-    val carbonMonoxide: Float
+    val carbonMonoxide: Float,
+    val alderPollen: Float = 0f,
+    val birchPollen: Float = 0f,
+    val grassPollen: Float = 0f,
+    val mugwortPollen: Float = 0f,
+    val olivePollen: Float = 0f,
+    val ragweedPollen: Float = 0f
 ) {
     val level: AqiLevel get() = AqiLevel.fromUsAqi(usAqi)
 }
@@ -201,7 +268,13 @@ data class HourlyDataPoint(
     val ozone: Float?,
     val nitrogenDioxide: Float?,
     val sulphurDioxide: Float?,
-    val carbonMonoxide: Float?
+    val carbonMonoxide: Float?,
+    val alderPollen: Float? = null,
+    val birchPollen: Float? = null,
+    val grassPollen: Float? = null,
+    val mugwortPollen: Float? = null,
+    val olivePollen: Float? = null,
+    val ragweedPollen: Float? = null
 )
 
 enum class TimelineMode(val title: String) {
@@ -255,5 +328,7 @@ data class AirQualityReport(
     val hourlyHistory: List<HourlyDataPoint>,
     val hourlyForecast: List<HourlyDataPoint> = emptyList(),
     val timezone: String,
-    val drivers: AtmosphericDrivers? = null
+    val drivers: AtmosphericDrivers? = null,
+    val allergenReport: AllergenReport? = null,
+    val heatmapReport: MonthlyHeatmapReport? = null
 )

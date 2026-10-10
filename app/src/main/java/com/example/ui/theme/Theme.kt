@@ -7,8 +7,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 
-// Strict Wired Dark Editorial Color Scheme
-private val WiredDarkColorScheme = darkColorScheme(
+private val LuxuryDarkColorScheme = darkColorScheme(
     primary = InkWhite,
     onPrimary = PitchBlack,
     secondary = InkMuted,
@@ -24,13 +23,13 @@ private val WiredDarkColorScheme = darkColorScheme(
     outlineVariant = HairlineBorderLight
 )
 
-// Sharp editorial square geometry (0.dp border radius)
-val WiredShapes = Shapes(
-    extraSmall = RoundedCornerShape(0.dp),
-    small = RoundedCornerShape(0.dp),
-    medium = RoundedCornerShape(0.dp),
-    large = RoundedCornerShape(0.dp),
-    extraLarge = RoundedCornerShape(0.dp)
+// Refined modern geometry with soft card radii
+val AtmosphereShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(24.dp)
 )
 
 @Composable
@@ -38,9 +37,9 @@ fun AtmosphereTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = WiredDarkColorScheme,
+        colorScheme = LuxuryDarkColorScheme,
         typography = Typography,
-        shapes = WiredShapes,
+        shapes = AtmosphereShapes,
         content = content
     )
 }

@@ -18,9 +18,9 @@ interface AirQualityApiService {
     suspend fun getAirQuality(
         @Query("latitude") latitude: Double,
         @Query("longitude") longitude: Double,
-        @Query("current") current: String = "us_aqi,european_aqi,pm10,pm2_5,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide",
-        @Query("hourly") hourly: String = "us_aqi,european_aqi,pm10,pm2_5,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide",
-        @Query("past_days") pastDays: Int = 7,
+        @Query("current") current: String = "us_aqi,european_aqi,pm10,pm2_5,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen",
+        @Query("hourly") hourly: String = "us_aqi,european_aqi,pm10,pm2_5,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen",
+        @Query("past_days") pastDays: Int = 30,
         @Query("forecast_days") forecastDays: Int = 5,
         @Query("timezone") timezone: String = "auto"
     ): AirQualityResponse

@@ -1,6 +1,6 @@
 {
   "name": "Atmosphere",
-  "description": "Wired-inspired minimalist dark mode air quality tracker powered by Open-Meteo.",
+  "description": "Minimalist luxury dark-mode air quality intelligence tracker powered by Open-Meteo.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

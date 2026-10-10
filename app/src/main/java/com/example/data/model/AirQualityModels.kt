@@ -24,7 +24,13 @@ data class CurrentAirQualityDto(
     val ozone: Float? = null,
     @Json(name = "nitrogen_dioxide") val nitrogenDioxide: Float? = null,
     @Json(name = "sulphur_dioxide") val sulphurDioxide: Float? = null,
-    @Json(name = "carbon_monoxide") val carbonMonoxide: Float? = null
+    @Json(name = "carbon_monoxide") val carbonMonoxide: Float? = null,
+    @Json(name = "alder_pollen") val alderPollen: Float? = null,
+    @Json(name = "birch_pollen") val birchPollen: Float? = null,
+    @Json(name = "grass_pollen") val grassPollen: Float? = null,
+    @Json(name = "mugwort_pollen") val mugwortPollen: Float? = null,
+    @Json(name = "olive_pollen") val olivePollen: Float? = null,
+    @Json(name = "ragweed_pollen") val ragweedPollen: Float? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -37,7 +43,13 @@ data class HourlyAirQualityDto(
     val ozone: List<Float?> = emptyList(),
     @Json(name = "nitrogen_dioxide") val nitrogenDioxide: List<Float?> = emptyList(),
     @Json(name = "sulphur_dioxide") val sulphurDioxide: List<Float?> = emptyList(),
-    @Json(name = "carbon_monoxide") val carbonMonoxide: List<Float?> = emptyList()
+    @Json(name = "carbon_monoxide") val carbonMonoxide: List<Float?> = emptyList(),
+    @Json(name = "alder_pollen") val alderPollen: List<Float?> = emptyList(),
+    @Json(name = "birch_pollen") val birchPollen: List<Float?> = emptyList(),
+    @Json(name = "grass_pollen") val grassPollen: List<Float?> = emptyList(),
+    @Json(name = "mugwort_pollen") val mugwortPollen: List<Float?> = emptyList(),
+    @Json(name = "olive_pollen") val olivePollen: List<Float?> = emptyList(),
+    @Json(name = "ragweed_pollen") val ragweedPollen: List<Float?> = emptyList()
 )
 
 @JsonClass(generateAdapter = true)

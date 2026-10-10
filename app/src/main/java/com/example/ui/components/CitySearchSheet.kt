@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
@@ -16,13 +18,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.LocationItem
 import com.example.ui.theme.*
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,15 +42,24 @@ fun CitySearchSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = PitchBlack,
-        dragHandle = null,
-        shape = MaterialTheme.shapes.extraSmall
+        containerColor = DarkSurface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 12.dp, bottom = 8.dp)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(HairlineBorderLight)
+            )
+        },
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
-                .padding(16.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
                 .navigationBarsPadding()
         ) {
             // Header
@@ -57,22 +68,13 @@ fun CitySearchSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "GLOBAL GEOCODING DIRECTORY",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            letterSpacing = 1.2.sp,
-                            color = InkFaint
-                        )
+                Text(
+                    text = "Find City",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = InkWhite,
+                        fontSize = 20.sp
                     )
-                    Text(
-                        text = "FIND ANY GLOBAL LOCATION",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            color = InkWhite,
-                            letterSpacing = 0.5.sp
-                        )
-                    )
-                }
+                )
 
                 IconButton(
                     onClick = onDismiss,
@@ -81,20 +83,21 @@ fun CitySearchSheet(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close search",
-                        tint = InkWhite
+                        tint = InkMuted
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Search input field with square borders
+            // Search input field with rounded border
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DarkSurface)
-                    .border(1.dp, EditorialBlue)
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(DarkElevated)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -108,8 +111,11 @@ fun CitySearchSheet(
                 Box(modifier = Modifier.weight(1f)) {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search city (e.g. Madrid, Seoul, Chicago)...",
-                            style = MaterialTheme.typography.bodyLarge.copy(color = InkFaint)
+                            text = "Search city or country...",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = InkFaint,
+                                fontSize = 14.sp
+                            )
                         )
                     }
                     BasicTextField(
@@ -117,7 +123,10 @@ fun CitySearchSheet(
                         onValueChange = onQueryChanged,
                         singleLine = true,
                         cursorBrush = SolidColor(InkWhite),
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = InkWhite),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = InkWhite,
+                            fontSize = 14.sp
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("search_text_input")
@@ -138,7 +147,7 @@ fun CitySearchSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Search status indicator
+            // Search progress indicator
             if (isSearching) {
                 LinearProgressIndicator(
                     modifier = Modifier
@@ -161,13 +170,16 @@ fun CitySearchSheet(
                 ) {
                     Text(
                         text = if (query.length < 2) {
-                            "Type at least 2 letters to query Open-Meteo's geocoding database."
+                            "Type at least 2 letters to search locations."
                         } else if (!isSearching) {
-                            "No global locations matching \"$query\" found."
+                            "No cities matching \"$query\" found."
                         } else {
-                            "Searching coordinates..."
+                            "Searching..."
                         },
-                        style = MaterialTheme.typography.bodyMedium.copy(color = InkFaint)
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = InkFaint,
+                            fontSize = 13.sp
+                        )
                     )
                 }
             } else {
@@ -181,39 +193,33 @@ fun CitySearchSheet(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
                                 .background(DarkElevated)
-                                .border(1.dp, HairlineBorder)
                                 .clickable { onSelectLocation(loc) }
-                                .padding(14.dp)
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
                                 .testTag("search_result_${loc.id}"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = loc.name.uppercase(),
+                                    text = loc.name,
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         color = InkWhite,
-                                        letterSpacing = 0.5.sp
+                                        fontSize = 15.sp
                                     )
                                 )
 
-                                Text(
-                                    text = listOfNotNull(loc.region, loc.country).joinToString(", "),
-                                    style = MaterialTheme.typography.bodyMedium.copy(color = InkMuted)
-                                )
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Text(
-                                    text = String.format(
-                                        Locale.US,
-                                        "LAT: %.2f° · LON: %.2f°",
-                                        loc.latitude,
-                                        loc.longitude
-                                    ),
-                                    style = MaterialTheme.typography.labelSmall.copy(color = InkFaint)
-                                )
+                                val subtext = listOfNotNull(loc.region, loc.country).joinToString(", ")
+                                if (subtext.isNotBlank()) {
+                                    Text(
+                                        text = subtext,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = InkMuted,
+                                            fontSize = 12.sp
+                                        )
+                                    )
+                                }
                             }
 
                             // Quick Bookmark button
@@ -227,7 +233,7 @@ fun CitySearchSheet(
                                     imageVector = if (loc.isSaved) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
                                     contentDescription = if (loc.isSaved) "Remove saved location" else "Save location",
                                     tint = if (loc.isSaved) EditorialBlue else InkMuted,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }

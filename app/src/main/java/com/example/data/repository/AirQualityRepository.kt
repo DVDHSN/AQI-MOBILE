@@ -35,15 +35,28 @@ class AirQualityRepository(
     private val dateFormatter = SimpleDateFormat("MMM d", Locale.US)
     private val dayOfWeekFormatter = SimpleDateFormat("EEE", Locale.US)
 
-    suspend fun fetchAirQuality(location: LocationItem): Result<AirQualityReport> =
+    // In-memory TTL cache: 10 minutes per location
+    private val memoryCache = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, AirQualityReport>>()
+    private val cacheTtlMs = 10 * 60 * 1000L
+
+    suspend fun fetchAirQuality(location: LocationItem, forceRefresh: Boolean = false): Result<AirQualityReport> =
         withContext(Dispatchers.IO) {
+            val cacheKey = "${location.id}_${String.format(Locale.US, "%.2f_%.2f", location.latitude, location.longitude)}"
+            if (!forceRefresh) {
+                memoryCache[cacheKey]?.let { (timestamp, cachedReport) ->
+                    if (System.currentTimeMillis() - timestamp < cacheTtlMs) {
+                        return@withContext Result.success(cachedReport)
+                    }
+                }
+            }
+
             try {
                 // Fetch air quality and weather in parallel
                 val airQualityDeferred = async {
                     airQualityApi.getAirQuality(
                         latitude = location.latitude,
                         longitude = location.longitude,
-                        pastDays = 7,
+                        pastDays = 30,
                         forecastDays = 5
                     )
                 }
@@ -72,7 +85,13 @@ class AirQualityRepository(
                     ozone = currentDto.ozone ?: 0f,
                     nitrogenDioxide = currentDto.nitrogenDioxide ?: 0f,
                     sulphurDioxide = currentDto.sulphurDioxide ?: 0f,
-                    carbonMonoxide = currentDto.carbonMonoxide ?: 0f
+                    carbonMonoxide = currentDto.carbonMonoxide ?: 0f,
+                    alderPollen = currentDto.alderPollen ?: 0f,
+                    birchPollen = currentDto.birchPollen ?: 0f,
+                    grassPollen = currentDto.grassPollen ?: 0f,
+                    mugwortPollen = currentDto.mugwortPollen ?: 0f,
+                    olivePollen = currentDto.olivePollen ?: 0f,
+                    ragweedPollen = currentDto.ragweedPollen ?: 0f
                 )
 
                 val hourlyDto = response.hourly
@@ -97,18 +116,26 @@ class AirQualityRepository(
                                 ozone = hourlyDto.ozone.getOrNull(i),
                                 nitrogenDioxide = hourlyDto.nitrogenDioxide.getOrNull(i),
                                 sulphurDioxide = hourlyDto.sulphurDioxide.getOrNull(i),
-                                carbonMonoxide = hourlyDto.carbonMonoxide.getOrNull(i)
+                                carbonMonoxide = hourlyDto.carbonMonoxide.getOrNull(i),
+                                alderPollen = hourlyDto.alderPollen.getOrNull(i),
+                                birchPollen = hourlyDto.birchPollen.getOrNull(i),
+                                grassPollen = hourlyDto.grassPollen.getOrNull(i),
+                                mugwortPollen = hourlyDto.mugwortPollen.getOrNull(i),
+                                olivePollen = hourlyDto.olivePollen.getOrNull(i),
+                                ragweedPollen = hourlyDto.ragweedPollen.getOrNull(i)
                             )
                         )
                     }
                 }
 
-                // Partition allHourlyList into History (past 7 days up to now) and Forecast (now to next 5 days)
+                // Partition allHourlyList into History (past 30 days) and Forecast (now to next 5 days)
                 val currentTimeStr = currentDto.time ?: ""
                 val currentIndex = allHourlyList.indexOfFirst { it.rawTime >= currentTimeStr }
                     .takeIf { it >= 0 } ?: (allHourlyList.size / 2)
 
-                val historyList = allHourlyList.subList(0, (currentIndex + 1).coerceAtMost(allHourlyList.size))
+                val fullHistoryList = allHourlyList.subList(0, (currentIndex + 1).coerceAtMost(allHourlyList.size))
+                // For the trend chart, take the most recent 7 days (168 hours) of history
+                val chartHistoryList = fullHistoryList.takeLast(168)
                 val forecastList = allHourlyList.subList(currentIndex.coerceAtMost(allHourlyList.size), allHourlyList.size)
 
                 // 1. Dominant Driver computation
@@ -126,20 +153,101 @@ class AirQualityRepository(
                     windDispersion = windDispersion
                 )
 
-                Result.success(
-                    AirQualityReport(
-                        location = location,
-                        current = current,
-                        hourlyHistory = historyList,
-                        hourlyForecast = forecastList,
-                        timezone = response.timezone ?: "UTC",
-                        drivers = drivers
-                    )
+                // 4. Pollen & Allergen computation
+                val allergenReport = computeAllergenReport(current)
+
+                // 5. 30-Day Air Quality Heatmap computation
+                val heatmapReport = computeMonthlyHeatmap(fullHistoryList)
+
+                val finalReport = AirQualityReport(
+                    location = location,
+                    current = current,
+                    hourlyHistory = chartHistoryList,
+                    hourlyForecast = forecastList,
+                    timezone = response.timezone ?: "UTC",
+                    drivers = drivers,
+                    allergenReport = allergenReport,
+                    heatmapReport = heatmapReport
                 )
+                memoryCache[cacheKey] = Pair(System.currentTimeMillis(), finalReport)
+                Result.success(finalReport)
             } catch (e: Exception) {
                 Result.failure(e)
             }
         }
+
+    private fun computeAllergenReport(current: CurrentAirQuality): AllergenReport {
+        fun assessPollen(grains: Float, modCut: Float, highCut: Float): AllergenRiskLevel {
+            return when {
+                grains <= 0f -> AllergenRiskLevel.LOW
+                grains < modCut -> AllergenRiskLevel.LOW
+                grains < highCut -> AllergenRiskLevel.MODERATE
+                grains < highCut * 2f -> AllergenRiskLevel.ELEVATED
+                else -> AllergenRiskLevel.HIGH
+            }
+        }
+
+        val items = listOf(
+            PollenItem("Birch", current.birchPollen, assessPollen(current.birchPollen, 10f, 40f)),
+            PollenItem("Grass", current.grassPollen, assessPollen(current.grassPollen, 10f, 35f)),
+            PollenItem("Alder", current.alderPollen, assessPollen(current.alderPollen, 15f, 45f)),
+            PollenItem("Ragweed", current.ragweedPollen, assessPollen(current.ragweedPollen, 10f, 30f)),
+            PollenItem("Olive", current.olivePollen, assessPollen(current.olivePollen, 15f, 50f))
+        )
+
+        val highestItem = items.maxByOrNull { it.countGrains } ?: items.first()
+        val overallRisk = items.maxByOrNull { it.risk.ordinal }?.risk ?: AllergenRiskLevel.LOW
+
+        return AllergenReport(
+            overallRisk = overallRisk,
+            dominantPollen = highestItem.name,
+            pollens = items
+        )
+    }
+
+    private fun computeMonthlyHeatmap(fullHistory: List<HourlyDataPoint>): MonthlyHeatmapReport {
+        // Group past hourly points by day (yyyy-MM-dd)
+        val dayGroups = fullHistory.groupBy { it.rawTime.take(10) }
+            .entries
+            .toList()
+            .takeLast(30)
+
+        val dailyPoints = dayGroups.map { entry ->
+            val dateKey = entry.key
+            val points = entry.value
+            val avg = points.mapNotNull { it.usAqi }.average().toFloat()
+            val firstPt = points.firstOrNull()
+            DailyHeatmapPoint(
+                date = dateKey,
+                displayDate = firstPt?.displayDate ?: dateKey.takeLast(5),
+                dayOfWeek = firstPt?.dayOfWeek ?: "",
+                avgAqi = if (avg.isNaN()) 35f else avg,
+                level = AqiLevel.fromUsAqi(if (avg.isNaN()) 35f else avg)
+            )
+        }
+
+        val goodDays = dailyPoints.count { it.level == AqiLevel.GOOD }
+        val moderateDays = dailyPoints.count { it.level == AqiLevel.MODERATE }
+        val degradedDays = dailyPoints.count { it.level != AqiLevel.GOOD && it.level != AqiLevel.MODERATE }
+
+        val insight = when {
+            goodDays >= 20 -> "Exceptional month: $goodDays days with clean air within WHO safety guidelines."
+            degradedDays >= 8 -> "Active inversion season: $degradedDays days exceeded recommended limits."
+            else -> "Moderate conditions: Air quality maintained steady seasonal averages."
+        }
+
+        val totalDays = dailyPoints.size.coerceAtLeast(1)
+        val comparisonPercent = ((goodDays.toFloat() / totalDays.toFloat()) * 100f).roundToInt()
+
+        return MonthlyHeatmapReport(
+            days = dailyPoints,
+            goodDaysCount = goodDays,
+            moderateDaysCount = moderateDays,
+            degradedDaysCount = degradedDays,
+            trendComparisonPercent = comparisonPercent,
+            trendInsight = insight
+        )
+    }
 
     private fun computeDominantDriver(current: CurrentAirQuality): DominantDriver {
         val candidates = listOf(
