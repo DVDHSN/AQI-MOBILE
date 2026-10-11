@@ -40,48 +40,7 @@ object AtmosphereSprings {
     )
 }
 
-/**
- * Universal bouncy click modifier with GPU-accelerated draw-phase scaling and subtle haptics.
- * Bypasses Compose recomposition loops by applying scale in graphicsLayer.
- */
-fun Modifier.bounceClickable(
-    enabled: Boolean = true,
-    scaleDown: Float = 0.94f,
-    onClick: () -> Unit
-): Modifier = composed {
-    if (!enabled) return@composed this
-
-    var isPressed by remember { mutableStateOf(false) }
-    val animatedScale by animateFloatAsState(
-        targetValue = if (isPressed) scaleDown else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "bounceClickScale"
-    )
-
-    val view = LocalView.current
-
-    this
-        .graphicsLayer {
-            scaleX = animatedScale
-            scaleY = animatedScale
-        }
-        .pointerInput(enabled) {
-            awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false)
-                isPressed = true
-                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-
-                val upOrCancel = waitForUpOrCancellation()
-                isPressed = false
-                if (upOrCancel != null) {
-                    onClick()
-                }
-            }
-        }
-}
+// bounceClickable and bounceClick are defined in BounceClickModifier.kt
 
 /**
  * Draw-phase atmospheric breathing glow ring around components without triggering recompositions.

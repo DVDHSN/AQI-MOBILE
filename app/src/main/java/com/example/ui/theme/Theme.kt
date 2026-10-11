@@ -7,39 +7,50 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 
-private val LuxuryDarkColorScheme = darkColorScheme(
-    primary = InkWhite,
-    onPrimary = PitchBlack,
-    secondary = InkMuted,
-    onSecondary = InkWhite,
-    tertiary = EditorialBlue,
-    background = PitchBlack,
-    onBackground = InkWhite,
-    surface = DarkSurface,
-    onSurface = InkWhite,
-    surfaceVariant = DarkElevated,
-    onSurfaceVariant = InkMuted,
-    outline = HairlineBorder,
-    outlineVariant = HairlineBorderLight
+// Strict Apple Dark Theme Palette
+private val AppleDarkColorScheme = darkColorScheme(
+    primary = ActionBlue,
+    onPrimary = OnPrimary,
+    primaryContainer = ActionBlue,
+    onPrimaryContainer = OnPrimary,
+    secondary = SkyLinkBlue,
+    onSecondary = OnPrimary,
+    tertiary = ActionBlueFocus,
+    onTertiary = OnPrimary,
+    background = SurfaceBlack,
+    onBackground = BodyOnDark,
+    surface = SurfaceTile1,
+    onSurface = BodyOnDark,
+    surfaceVariant = SurfaceTile2,
+    onSurfaceVariant = BodyMuted,
+    surfaceContainerLowest = SurfaceBlack,
+    surfaceContainerLow = SurfaceTile3,
+    surfaceContainer = SurfaceTile1,
+    surfaceContainerHigh = SurfaceTile2,
+    surfaceContainerHighest = SurfaceTile2,
+    outline = DarkHairline,
+    outlineVariant = DarkCardBorder
 )
 
-// Refined modern geometry with soft card radii
-val AtmosphereShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(20.dp),
-    extraLarge = RoundedCornerShape(24.dp)
+// Apple Rounded Geometry Scale
+val AppleShapes = Shapes(
+    extraSmall = RoundedCornerShape(5.dp),     // {rounded.xs} 5px
+    small = RoundedCornerShape(8.dp),          // {rounded.sm} 8px
+    medium = RoundedCornerShape(11.dp),        // {rounded.md} 11px
+    large = RoundedCornerShape(18.dp),         // {rounded.lg} 18px (utility card radius)
+    extraLarge = RoundedCornerShape(9999.dp)   // {rounded.pill} 9999px (signature Apple pill)
 )
+
+val AtmosphereShapes = AppleShapes
 
 @Composable
 fun AtmosphereTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = LuxuryDarkColorScheme,
+        colorScheme = AppleDarkColorScheme,
         typography = Typography,
-        shapes = AtmosphereShapes,
+        shapes = AppleShapes,
         content = content
     )
 }

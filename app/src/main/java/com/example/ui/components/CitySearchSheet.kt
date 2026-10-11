@@ -2,18 +2,12 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,9 +18,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.LocationItem
-import com.example.ui.animation.bounceClickable
+import com.example.ui.animation.bounceClick
+import com.example.ui.icons.LucideIcons
 import com.example.ui.theme.*
 
+/**
+ * City Search Modal Sheet designed with Apple minimalism.
+ * Full-pill search field, crisp Lucide hairline icons, dark elevated cards, and tactile spring feedback.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CitySearchSheet(
@@ -43,7 +42,7 @@ fun CitySearchSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = DarkSurface,
+        containerColor = AppleCardBackground,
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -51,7 +50,7 @@ fun CitySearchSheet(
                     .width(36.dp)
                     .height(4.dp)
                     .clip(CircleShape)
-                    .background(HairlineBorderLight)
+                    .background(AppleCardSecondary)
             )
         },
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
@@ -70,174 +69,173 @@ fun CitySearchSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Find City",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        color = InkWhite,
-                        fontSize = 20.sp
-                    )
+                    text = "Search Cities",
+                    style = TypographyDisplayMd.copy(fontSize = 22.sp)
                 )
 
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(36.dp)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(AppleCardSecondary)
+                        .bounceClick { onDismiss() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = LucideIcons.X,
                         contentDescription = "Close search",
-                        tint = InkMuted
+                        tint = AppleTextSecondary,
+                        modifier = Modifier.size(16.dp)
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Capsule search input
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(AppleCardSecondary)
+                    .border(0.5.dp, AppleBorder, RoundedCornerShape(9999.dp))
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = LucideIcons.Search,
+                    contentDescription = null,
+                    tint = AppleTextSecondary,
+                    modifier = Modifier.size(16.dp)
+                )
+
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChanged,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("search_text_input"),
+                    textStyle = TypographyBody.copy(
+                        color = AppleTextPrimary,
+                        fontSize = 15.sp
+                    ),
+                    singleLine = true,
+                    cursorBrush = SolidColor(AppleActionBlue),
+                    decorationBox = { innerTextField ->
+                        if (query.isEmpty()) {
+                            Text(
+                                text = "Search worldwide cities…",
+                                style = TypographyBody.copy(
+                                    color = AppleTextSecondary,
+                                    fontSize = 15.sp
+                                )
+                            )
+                        }
+                        innerTextField()
+                    }
+                )
+
+                if (query.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(AppleBorder)
+                            .bounceClick { onQueryChanged("") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = LucideIcons.X,
+                            contentDescription = "Clear search",
+                            tint = AppleTextPrimary,
+                            modifier = Modifier.size(11.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Search input field with rounded border
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(DarkElevated)
-                    .border(1.dp, HairlineBorder, RoundedCornerShape(16.dp))
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = EditorialBlue,
-                    modifier = Modifier.size(18.dp)
-                )
-
-                Box(modifier = Modifier.weight(1f)) {
-                    if (query.isEmpty()) {
-                        Text(
-                            text = "Search city or country...",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = InkFaint,
-                                fontSize = 14.sp
-                            )
-                        )
-                    }
-                    BasicTextField(
-                        value = query,
-                        onValueChange = onQueryChanged,
-                        singleLine = true,
-                        cursorBrush = SolidColor(InkWhite),
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = InkWhite,
-                            fontSize = 14.sp
-                        ),
+            // Search Results List
+            when {
+                isSearching -> {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("search_text_input")
-                    )
-                }
-
-                if (query.isNotEmpty()) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search",
-                        tint = InkMuted,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clickable { onQueryChanged("") }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Search progress indicator
-            if (isSearching) {
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp),
-                    color = EditorialBlue,
-                    trackColor = DarkSurface
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Results List
-            if (searchResults.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = 40.dp),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    Text(
-                        text = if (query.length < 2) {
-                            "Type at least 2 letters to search locations."
-                        } else if (!isSearching) {
-                            "No cities matching \"$query\" found."
-                        } else {
-                            "Searching..."
-                        },
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = InkFaint,
-                            fontSize = 13.sp
+                            .padding(top = 40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = AppleActionBlue,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(28.dp)
                         )
-                    )
+                    }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(searchResults, key = { it.id }) { loc ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(DarkElevated)
-                                .bounceClickable(scaleDown = 0.96f) { onSelectLocation(loc) }
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                                .testTag("search_result_${loc.id}"),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = loc.name,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        color = InkWhite,
-                                        fontSize = 15.sp
-                                    )
-                                )
 
-                                val subtext = listOfNotNull(loc.region, loc.country).joinToString(", ")
-                                if (subtext.isNotBlank()) {
+                searchResults.isEmpty() && query.isNotBlank() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No cities found for \"$query\"",
+                            style = TypographyBody.copy(color = AppleTextSecondary, fontSize = 14.sp)
+                        )
+                    }
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(searchResults, key = { it.id }) { loc ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(AppleCardSecondary)
+                                    .border(0.5.dp, AppleBorder, RoundedCornerShape(14.dp))
+                                    .bounceClick {
+                                        onSelectLocation(loc)
+                                        onDismiss()
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .testTag("search_result_item_${loc.id}"),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = subtext,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            color = InkMuted,
-                                            fontSize = 12.sp
-                                        )
+                                        text = loc.name,
+                                        style = TypographyBodyStrong.copy(fontSize = 15.sp, color = AppleTextPrimary)
+                                    )
+                                    Text(
+                                        text = loc.displayName,
+                                        style = TypographyFinePrint.copy(color = AppleTextSecondary)
                                     )
                                 }
-                            }
 
-                            // Quick Bookmark button with tactile spring
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .bounceClickable(scaleDown = 0.88f) { onToggleSaveLocation(loc) }
-                                    .testTag("search_bookmark_${loc.id}"),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (loc.isSaved) Icons.Default.Bookmark else Icons.Outlined.BookmarkBorder,
-                                    contentDescription = if (loc.isSaved) "Remove saved location" else "Save location",
-                                    tint = if (loc.isSaved) EditorialBlue else InkMuted,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(AppleCardBackground)
+                                        .bounceClick { onToggleSaveLocation(loc) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (loc.isSaved) LucideIcons.BookmarkFilled else LucideIcons.Bookmark,
+                                        contentDescription = if (loc.isSaved) "Remove" else "Save",
+                                        tint = if (loc.isSaved) AppleActionBlue else AppleTextSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }

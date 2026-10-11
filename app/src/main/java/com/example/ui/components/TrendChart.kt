@@ -4,11 +4,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -16,13 +13,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -30,8 +25,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,11 +36,19 @@ import com.example.data.model.AqiLevel
 import com.example.data.model.ChartMetric
 import com.example.data.model.HourlyDataPoint
 import com.example.data.model.TimelineMode
-import com.example.ui.animation.bounceClickable
+import com.example.ui.animation.bounceClick
 import com.example.ui.theme.*
 import java.util.Locale
 import kotlin.math.max
 
+/**
+ * Air Quality Trend & Forecast Card ({component.store-utility-card} / {component.product-tile-dark-3})
+ * - Near-Black Tile 3 (#252527) surface canvas.
+ * - Corner radius {rounded.lg} (18.dp).
+ * - Action Blue (#0066cc) vector curve with subtle monochromatic transparency.
+ * - Pill buttons ({rounded.pill}) for mode switcher and metric filters.
+ * - Tactile spring feedback and native haptics on scrubbing.
+ */
 @Composable
 fun TrendChart(
     historyData: List<HourlyDataPoint>,
@@ -57,6 +62,7 @@ fun TrendChart(
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(true) }
+    val haptic = LocalHapticFeedback.current
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -82,17 +88,6 @@ fun TrendChart(
 
     val minVal = 0f
 
-    val haloTransition = rememberInfiniteTransition(label = "scrubberHalo")
-    val haloPulse by haloTransition.animateFloat(
-        initialValue = 6f,
-        targetValue = 11f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "haloRadius"
-    )
-
     var localScrubbedPoint by remember { mutableStateOf<HourlyDataPoint?>(null) }
     LaunchedEffect(timelineMode, activeData) {
         localScrubbedPoint = null
@@ -104,10 +99,9 @@ fun TrendChart(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(DarkSurface)
-            .border(1.dp, HairlineBorder, RoundedCornerShape(20.dp))
-            .padding(16.dp)
+            .clip(RoundedCornerShape(18.dp)) // {rounded.lg} 18px
+            .background(SurfaceTile3)        // Near-Black Tile 3 (#252527)
+            .padding(20.dp)
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioLowBouncy,
@@ -116,24 +110,22 @@ fun TrendChart(
             )
             .testTag("trend_chart_section")
     ) {
-        // Expandable Header Row (Clickable toggle, min 48dp interactive size)
+        // Header Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .bounceClickable(scaleDown = 0.98f) {
-                    isExpanded = !isExpanded
-                }
+                .clip(RoundedCornerShape(11.dp))
+                .bounceClick { isExpanded = !isExpanded }
                 .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Air Quality Trend",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        color = InkWhite,
-                        fontSize = 15.sp
+                    text = "Atmospheric Trend",
+                    style = TypographyTagline.copy(
+                        fontSize = 19.sp,
+                        color = BodyOnDark
                     )
                 )
 
@@ -144,151 +136,65 @@ fun TrendChart(
                         val modeLabel = if (timelineMode == TimelineMode.HISTORY) "Past 7D" else "Forecast 5D"
                         "$modeLabel · ${selectedMetric.shortLabel}: ${String.format(Locale.US, "%.1f %s", activeValue, selectedMetric.unit)}"
                     },
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = if (isExpanded) InkFaint else EditorialBlue,
-                        fontSize = 11.sp
+                    style = TypographyCaption.copy(
+                        color = if (isExpanded) FinePrint else SkyLinkBlue,
+                        fontSize = 12.sp
                     ),
                     maxLines = 1
                 )
             }
 
-            // Expand / Collapse Pill + Rotating Chevron
+            // Expand / Collapse Pill
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DarkElevated)
-                    .padding(horizontal = 9.dp, vertical = 5.dp)
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(SurfaceTile1)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = if (isExpanded) "Collapse" else "Expand",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = InkMuted,
-                        fontSize = 10.sp
+                    text = if (isExpanded) "Hide" else "Show",
+                    style = TypographyButtonUtility.copy(
+                        color = BodyMuted,
+                        fontSize = 11.sp
                     )
                 )
 
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (isExpanded) "Collapse trend chart" else "Expand trend chart",
-                    tint = InkMuted,
+                    contentDescription = if (isExpanded) "Collapse chart" else "Expand chart",
+                    tint = BodyMuted,
                     modifier = Modifier
-                        .size(15.dp)
+                        .size(14.dp)
                         .graphicsLayer { rotationZ = chevronRotation }
                 )
             }
         }
 
-        // Collapsed Compact Snapshot Strip (Saves space on 6.3" screens)
-        AnimatedVisibility(
-            visible = !isExpanded,
-            enter = fadeIn(animationSpec = tween(180)) + expandVertically(),
-            exit = fadeOut(animationSpec = tween(120)) + shrinkVertically()
-        ) {
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DarkElevated)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    val modeColor = if (timelineMode == TimelineMode.HISTORY) EditorialBlue else AqiModerate
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(modeColor.copy(alpha = 0.15f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (timelineMode == TimelineMode.HISTORY) "7D PAST" else "5D FORECAST",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = modeColor,
-                                fontSize = 9.sp
-                            )
-                        )
-                    }
-
-                    Text(
-                        text = selectedMetric.shortLabel,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            color = InkWhite,
-                            fontSize = 11.sp
-                        )
-                    )
-                }
-
-                Text(
-                    text = String.format(Locale.US, "%.1f %s", activeValue, selectedMetric.unit),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        color = InkWhite,
-                        fontSize = 13.sp
-                    )
-                )
-            }
-        }
-
-        // Expanded Interactive Timeline Section
+        // Expanded Interactive Timeline
         AnimatedVisibility(
             visible = isExpanded,
-            enter = fadeIn(animationSpec = tween(220)) + expandVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
-            ),
+            enter = fadeIn(animationSpec = tween(200)) + expandVertically(),
             exit = fadeOut(animationSpec = tween(150)) + shrinkVertically()
         ) {
             Column {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Timeline Mode Switcher (Apple fluid sliding pill control)
+                AppleSlidingSegmentedControl(
+                    items = TimelineMode.entries,
+                    selectedIndex = TimelineMode.entries.indexOf(timelineMode),
+                    onItemSelected = { index ->
+                        onSelectTimelineMode(TimelineMode.entries[index])
+                        onScrubPoint(null)
+                    },
+                    label = { mode -> if (mode == TimelineMode.HISTORY) "7D Past" else "5D Forecast" }
+                )
+
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Timeline Mode Switcher (Pill style with spring scale microinteraction)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(DarkElevated)
-                        .padding(2.dp)
-                ) {
-                    TimelineMode.entries.forEach { mode ->
-                        val isSelected = mode == timelineMode
-                        val label = if (mode == TimelineMode.HISTORY) "7D Past" else "5D Forecast"
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) InkWhite else DarkElevated)
-                                .bounceClickable(scaleDown = 0.95f) {
-                                    onSelectTimelineMode(mode)
-                                    onScrubPoint(null)
-                                }
-                                .padding(vertical = 6.dp)
-                                .testTag("timeline_mode_${mode.name}"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = if (isSelected) PitchBlack else InkMuted,
-                                    fontSize = 11.sp,
-                                    letterSpacing = 0.2.sp
-                                )
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Metric Selector Chips with tactile microinteraction
+                // Metric Selector Chips
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -298,20 +204,15 @@ fun TrendChart(
 
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) DarkElevated else DarkSurface)
-                                .border(
-                                    1.dp,
-                                    if (isSelected) EditorialBlue.copy(alpha = 0.6f) else HairlineBorder,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .bounceClickable(scaleDown = 0.94f) { onSelectMetric(metric) }
-                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                                .clip(RoundedCornerShape(9999.dp))
+                                .background(if (isSelected) ActionBlue else SurfaceTile1)
+                                .bounceClick { onSelectMetric(metric) }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = metric.shortLabel,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = if (isSelected) InkWhite else InkMuted,
+                                style = TypographyCaptionStrong.copy(
+                                    color = if (isSelected) BodyOnDark else BodyMuted,
                                     fontSize = 11.sp
                                 )
                             )
@@ -319,9 +220,9 @@ fun TrendChart(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Active Inspection Point Readout with dynamic color
+                // Active Point Inspection Strip
                 activePoint?.let { point ->
                     val ptLevel = if (selectedMetric == ChartMetric.US_AQI) {
                         AqiLevel.fromUsAqi(activeValue)
@@ -332,59 +233,44 @@ fun TrendChart(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(DarkElevated)
-                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(SurfaceTile1)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "${point.dayOfWeek}, ${point.displayDate} · ${point.displayHour}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = InkMuted,
-                                fontSize = 11.sp
+                            style = TypographyCaption.copy(
+                                color = BodyMuted,
+                                fontSize = 12.sp
                             )
                         )
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
                                 text = String.format(Locale.US, "%.1f %s", activeValue, selectedMetric.unit),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    color = ptLevel?.color ?: EditorialBlue,
-                                    fontSize = 13.sp
+                                style = TypographyBodyStrong.copy(
+                                    color = ptLevel?.color ?: BodyOnDark,
+                                    fontSize = 14.sp
                                 )
                             )
 
                             if (ptLevel != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(ptLevel.color.copy(alpha = 0.15f))
-                                        .padding(horizontal = 5.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = ptLevel.label,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = ptLevel.color,
-                                            fontSize = 9.sp
-                                        )
-                                    )
-                                }
+                                AppleStatusPill(level = ptLevel)
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Interactive Canvas Chart (Tuned to 140.dp height for optimal 6.3" screen proportion)
+                // Interactive Vector Canvas Chart
                 var chartWidth by remember { mutableFloatStateOf(1f) }
                 val pointsCount = activeData.size
-
-                // Zero-recomposition geometry cache (Plain Kotlin container, no Compose state writes inside DrawScope)
                 val geometryCache = remember(metricValues, maxVal) { ChartGeometryCache() }
 
                 Box(
@@ -392,7 +278,7 @@ fun TrendChart(
                         .fillMaxWidth()
                         .height(140.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(PitchBlack)
+                        .background(SurfaceBlack)
                         .onSizeChanged { size ->
                             chartWidth = size.width.toFloat()
                         }
@@ -406,6 +292,7 @@ fun TrendChart(
                                     val pt = activeData.getOrNull(index)
                                     localScrubbedPoint = pt
                                     onScrubPoint(pt)
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 }
                             )
                         }
@@ -419,6 +306,7 @@ fun TrendChart(
                                     val pt = activeData.getOrNull(index)
                                     localScrubbedPoint = pt
                                     onScrubPoint(pt)
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 },
                                 onDragEnd = {},
                                 onDragCancel = {
@@ -432,7 +320,10 @@ fun TrendChart(
                                         .toInt()
                                         .coerceIn(0, pointsCount - 1)
                                     val pt = activeData.getOrNull(index)
-                                    localScrubbedPoint = pt
+                                    if (pt != localScrubbedPoint) {
+                                        localScrubbedPoint = pt
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
                                 }
                             )
                         }
@@ -441,26 +332,26 @@ fun TrendChart(
                     Canvas(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 6.dp, vertical = 6.dp)
+                            .padding(horizontal = 6.dp, vertical = 8.dp)
                     ) {
                         val width = size.width
                         val height = size.height
 
                         if (metricValues.isEmpty() || pointsCount < 2) return@Canvas
 
-                        // Horizontal hairline gridlines
+                        // Horizontal hairlines (no loud grid lines)
                         val gridSteps = 3
                         for (i in 0..gridSteps) {
                             val y = height * (i.toFloat() / gridSteps)
                             drawLine(
-                                color = HairlineBorder,
+                                color = DarkHairline,
                                 start = Offset(0f, y),
                                 end = Offset(width, y),
                                 strokeWidth = 1f
                             )
                         }
 
-                        // Path calculation without snapshot state invalidations
+                        // Geometry calculation
                         if (geometryCache.width != width || geometryCache.height != height) {
                             geometryCache.width = width
                             geometryCache.height = height
@@ -492,12 +383,12 @@ fun TrendChart(
                             geometryCache.fillPath.close()
                         }
 
-                        val gradientColor = if (timelineMode == TimelineMode.HISTORY) EditorialBlue else AqiModerate
+                        // Strict Apple design: Action Blue #0066cc curve with calm transparent falloff
                         drawPath(
                             path = geometryCache.fillPath,
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    gradientColor.copy(alpha = 0.2f),
+                                    ActionBlue.copy(alpha = 0.22f),
                                     Color.Transparent
                                 ),
                                 startY = 0f,
@@ -507,11 +398,11 @@ fun TrendChart(
 
                         drawPath(
                             path = geometryCache.linePath,
-                            color = gradientColor,
-                            style = Stroke(width = 2.2f, cap = StrokeCap.Round)
+                            color = ActionBlue,
+                            style = Stroke(width = 2.4f, cap = StrokeCap.Round)
                         )
 
-                        // Microinteraction: Scrub cursor with glowing indicator dot
+                        // Scrub indicator
                         val currentScrub = localScrubbedPoint ?: scrubbedPoint
                         currentScrub?.let { scrub ->
                             val scrubIndex = activeData.indexOfFirst { it.rawTime == scrub.rawTime }
@@ -522,32 +413,19 @@ fun TrendChart(
                                     .coerceIn(0f, height)
 
                                 drawLine(
-                                    color = InkWhite.copy(alpha = 0.6f),
+                                    color = BodyOnDark.copy(alpha = 0.5f),
                                     start = Offset(scrubX, 0f),
                                     end = Offset(scrubX, height),
                                     strokeWidth = 1f
                                 )
 
-                                // Outer breathing glow circle
                                 drawCircle(
-                                    color = gradientColor.copy(alpha = 0.22f),
-                                    radius = haloPulse.dp.toPx(),
-                                    center = Offset(scrubX, scrubY)
-                                )
-
-                                drawCircle(
-                                    color = gradientColor.copy(alpha = 0.5f),
-                                    radius = 5.dp.toPx(),
-                                    center = Offset(scrubX, scrubY)
-                                )
-
-                                drawCircle(
-                                    color = PitchBlack,
-                                    radius = 3.5.dp.toPx(),
+                                    color = ActionBlue,
+                                    radius = 4.dp.toPx(),
                                     center = Offset(scrubX, scrubY)
                                 )
                                 drawCircle(
-                                    color = InkWhite,
+                                    color = BodyOnDark,
                                     radius = 2.dp.toPx(),
                                     center = Offset(scrubX, scrubY)
                                 )
@@ -556,9 +434,9 @@ fun TrendChart(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // X-axis Day markers
+                // X-axis timestamps
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -577,9 +455,9 @@ fun TrendChart(
                     sampledMarkers.forEach { marker ->
                         Text(
                             text = "${marker.dayOfWeek} ${marker.displayDate.takeLast(2)}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = InkFaint,
-                                fontSize = 9.sp
+                            style = TypographyFinePrint.copy(
+                                color = FinePrint,
+                                fontSize = 10.sp
                             )
                         )
                     }

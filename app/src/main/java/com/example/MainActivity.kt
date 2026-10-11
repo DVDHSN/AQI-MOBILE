@@ -9,32 +9,27 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.AppMode
-import com.example.ui.animation.bounceClickable
+import com.example.data.model.ChartMetric
+import com.example.data.model.HourlyDataPoint
+import com.example.data.model.LocationItem
+import com.example.data.model.TimelineMode
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AqiUiState
@@ -93,7 +88,7 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    containerColor = PitchBlack,
+                    containerColor = SurfaceBlack,
                     contentWindowInsets = WindowInsets.safeDrawing
                 ) { innerPadding ->
                     AtmosphereAppContent(
@@ -127,18 +122,18 @@ fun AtmosphereAppContent(
     uiState: AqiUiState,
     onRefresh: () -> Unit,
     onSelectAppMode: (AppMode) -> Unit,
-    onSelectTimelineMode: (com.example.data.model.TimelineMode) -> Unit,
-    onSelectLocation: (com.example.data.model.LocationItem) -> Unit,
-    onToggleSaveLocation: (com.example.data.model.LocationItem) -> Unit,
+    onSelectTimelineMode: (TimelineMode) -> Unit,
+    onSelectLocation: (LocationItem) -> Unit,
+    onToggleSaveLocation: (LocationItem) -> Unit,
     onRequestCurrentLocation: () -> Unit,
     onOpenSearch: () -> Unit,
-    onSelectMetric: (com.example.data.model.ChartMetric) -> Unit,
+    onSelectMetric: (ChartMetric) -> Unit,
     onCycleStandard: () -> Unit,
-    onScrubPoint: (com.example.data.model.HourlyDataPoint?) -> Unit,
-    onSelectDuelCityA: (com.example.data.model.LocationItem) -> Unit,
-    onSelectDuelCityB: (com.example.data.model.LocationItem) -> Unit,
+    onScrubPoint: (HourlyDataPoint?) -> Unit,
+    onSelectDuelCityA: (LocationItem) -> Unit,
+    onSelectDuelCityB: (LocationItem) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
-    onSelectSearchResult: (com.example.data.model.LocationItem) -> Unit,
+    onSelectSearchResult: (LocationItem) -> Unit,
     onCloseSearch: () -> Unit,
     onDismissFeedback: () -> Unit,
     modifier: Modifier = Modifier
@@ -146,251 +141,90 @@ fun AtmosphereAppContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(PitchBlack)
+            .background(SurfaceBlack)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Masthead with Overview / Compare switcher
-            TopMasthead(
+            // 1. Attached Classic Apple Top Navigation Bar with sliding segmented control
+            ClassicAppleNavBar(
                 appMode = uiState.appMode,
                 onSelectAppMode = onSelectAppMode,
+                activeLocation = uiState.activeLocation,
                 isRefreshing = uiState.isRefreshing,
-                onRefresh = onRefresh
+                isLocating = uiState.isLocating,
+                onRefresh = onRefresh,
+                onRequestCurrentLocation = onRequestCurrentLocation,
+                onOpenSearch = onOpenSearch
             )
 
-            // Feedback Banner (e.g. GPS detected or saved notification)
-            AnimatedVisibility(visible = uiState.locationFeedbackMessage != null) {
-                uiState.locationFeedbackMessage?.let { msg ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(DarkElevated)
-                            .border(1.dp, HairlineBorderLight, RoundedCornerShape(12.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = msg,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = InkWhite,
-                                fontSize = 12.sp
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Dismiss notice",
-                            tint = InkMuted,
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clickable { onDismissFeedback() }
+            // 2. Animated transition between Overview and Compare modes
+            AnimatedContent(
+                targetState = uiState.appMode,
+                transitionSpec = {
+                    if (targetState == AppMode.DUEL) {
+                        slideInHorizontally(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ) { width -> width / 3 } + fadeIn(animationSpec = tween(200)) togetherWith
+                            slideOutHorizontally(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { width -> -width / 3 } + fadeOut(animationSpec = tween(160))
+                    } else {
+                        slideInHorizontally(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ) { width -> -width / 3 } + fadeIn(animationSpec = tween(200)) togetherWith
+                            slideOutHorizontally(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { width -> width / 3 } + fadeOut(animationSpec = tween(160))
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                label = "appleModeSwitchTransition"
+            ) { mode ->
+                when (mode) {
+                    AppMode.DISPATCH -> {
+                        AQIDashboardScreen(
+                            uiState = uiState,
+                            onRefresh = onRefresh,
+                            onSelectAppMode = onSelectAppMode,
+                            onSelectTimelineMode = onSelectTimelineMode,
+                            onSelectLocation = onSelectLocation,
+                            onToggleSaveLocation = onToggleSaveLocation,
+                            onRequestCurrentLocation = onRequestCurrentLocation,
+                            onOpenSearch = onOpenSearch,
+                            onSelectMetric = onSelectMetric,
+                            onCycleStandard = onCycleStandard,
+                            onScrubPoint = onScrubPoint,
+                            onDismissFeedback = onDismissFeedback,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
-                }
-            }
 
-            // Loading / Locating line indicator
-            AnimatedVisibility(visible = uiState.isLoading || uiState.isRefreshing || uiState.isLocating) {
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp),
-                    color = EditorialBlue,
-                    trackColor = PitchBlack
-                )
-            }
-
-            // Main View Switcher: DISPATCH vs CITY DUEL
-            when (uiState.appMode) {
-                AppMode.DUEL -> {
-                    CityDuelScreen(
-                        availableLocations = uiState.pinnedLocations,
-                        cityA = uiState.duelCityA,
-                        cityB = uiState.duelCityB,
-                        reportA = uiState.duelReportA,
-                        reportB = uiState.duelReportB,
-                        isLoadingA = uiState.isLoadingDuelA,
-                        isLoadingB = uiState.isLoadingDuelB,
-                        onSelectCityA = onSelectDuelCityA,
-                        onSelectCityB = onSelectDuelCityB,
-                        selectedMetric = uiState.selectedMetric,
-                        onSelectMetric = onSelectMetric,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                AppMode.DISPATCH -> {
-                    // Location Pill Chips Bar with GPS & Search
-                    CitySelectorBar(
-                        locations = uiState.pinnedLocations,
-                        activeLocation = uiState.activeLocation,
-                        isLocating = uiState.isLocating,
-                        onSelectLocation = onSelectLocation,
-                        onRequestCurrentLocation = onRequestCurrentLocation,
-                        onOpenSearch = onOpenSearch
-                    )
-
-                    // Body Area
-                    when {
-                        uiState.isLoading && uiState.report == null -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(24.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    CircularProgressIndicator(
-                                        color = EditorialBlue,
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                    Text(
-                                        text = "Loading air quality...",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            color = InkMuted,
-                                            fontSize = 13.sp
-                                        )
-                                    )
-                                }
-                            }
-                        }
-
-                        uiState.errorMessage != null && uiState.report == null -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(24.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .background(DarkSurface)
-                                        .border(1.dp, HairlineBorder, RoundedCornerShape(20.dp))
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                                ) {
-                                    Text(
-                                        text = "Unable to Load Data",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            color = InkWhite,
-                                            fontSize = 16.sp
-                                        )
-                                    )
-                                    Text(
-                                        text = uiState.errorMessage,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            color = InkMuted,
-                                            fontSize = 13.sp
-                                        )
-                                    )
-                                    Button(
-                                        onClick = onRefresh,
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = InkWhite,
-                                            contentColor = PitchBlack
-                                        ),
-                                        modifier = Modifier
-                                            .bounceClickable(scaleDown = 0.94f) { onRefresh() }
-                                            .testTag("retry_button")
-                                    ) {
-                                        Text(
-                                            text = "Retry",
-                                            style = MaterialTheme.typography.labelMedium
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        uiState.report != null -> {
-                            val report = uiState.report
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .testTag("main_content_list"),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                // 1. Unified Hero AQI Card with Direct Tap Standards Switcher
-                                item(key = "hero_aqi_item", contentType = "hero") {
-                                    HeroAqiCard(
-                                        location = report.location,
-                                        current = report.current,
-                                        standard = uiState.aqiStandard,
-                                        drivers = report.drivers,
-                                        onToggleSaveLocation = onToggleSaveLocation,
-                                        onCycleStandard = onCycleStandard,
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-
-                                // 2. Pollen & Seasonal Allergen Index Card
-                                report.allergenReport?.let { allergen ->
-                                    item(key = "pollen_allergen_item", contentType = "pollen") {
-                                        PollenAllergenCard(
-                                            report = allergen,
-                                            modifier = Modifier.animateItem()
-                                        )
-                                    }
-                                }
-
-                                // 3. Interactive Trend Chart (with 7-Day History & 5-Day Forecast)
-                                item(key = "trend_chart_item", contentType = "trend") {
-                                    TrendChart(
-                                        historyData = report.hourlyHistory,
-                                        forecastData = report.hourlyForecast,
-                                        timelineMode = uiState.timelineMode,
-                                        onSelectTimelineMode = onSelectTimelineMode,
-                                        selectedMetric = uiState.selectedMetric,
-                                        onSelectMetric = onSelectMetric,
-                                        scrubbedPoint = uiState.scrubbedPoint,
-                                        onScrubPoint = onScrubPoint,
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-
-                                // 4. 30-Day Air Quality Calendar Heatmap (Expandable directly below Trend Chart)
-                                report.heatmapReport?.let { heatmap ->
-                                    item(key = "monthly_heatmap_item", contentType = "heatmap") {
-                                        MonthlyHeatmapCard(
-                                            report = heatmap,
-                                            modifier = Modifier.animateItem()
-                                        )
-                                    }
-                                }
-
-                                // 5. Compact Pollutant Matrix
-                                item(key = "pollutant_matrix_item", contentType = "pollutants") {
-                                    PollutantMatrix(
-                                        current = report.current,
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-
-                                // 6. Actionable Health Guidelines
-                                item(key = "health_advisory_item", contentType = "health") {
-                                    HealthAdvisorySection(
-                                        level = report.current.level,
-                                        modifier = Modifier.animateItem()
-                                    )
-                                }
-
-                                // Bottom breathing spacer
-                                item(key = "bottom_spacer_item", contentType = "spacer") {
-                                    Spacer(modifier = Modifier.height(20.dp).animateItem())
-                                }
-                            }
-                        }
+                    AppMode.DUEL -> {
+                        CityDuelScreen(
+                            availableLocations = uiState.pinnedLocations,
+                            cityA = uiState.duelCityA,
+                            cityB = uiState.duelCityB,
+                            reportA = uiState.duelReportA,
+                            reportB = uiState.duelReportB,
+                            isLoadingA = uiState.isLoadingDuelA,
+                            isLoadingB = uiState.isLoadingDuelB,
+                            onSelectCityA = onSelectDuelCityA,
+                            onSelectCityB = onSelectDuelCityB,
+                            selectedMetric = uiState.selectedMetric,
+                            onSelectMetric = onSelectMetric,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
             }

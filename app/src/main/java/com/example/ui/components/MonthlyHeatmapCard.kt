@@ -6,8 +6,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,9 +24,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.DailyHeatmapPoint
 import com.example.data.model.MonthlyHeatmapReport
-import com.example.ui.animation.bounceClickable
+import com.example.ui.animation.bounceClick
 import com.example.ui.theme.*
 
+/**
+ * 30-Day Air Quality Calendar Heatmap Card redesigned for Apple design language.
+ * - Near-Black Tile 2 (#2a2a2c) surface
+ * - 18dp corner radius
+ * - Apple typography & Action Blue accents
+ */
 @Composable
 fun MonthlyHeatmapCard(
     report: MonthlyHeatmapReport,
@@ -49,226 +52,130 @@ fun MonthlyHeatmapCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(DarkSurface)
-            .border(1.dp, HairlineBorder, RoundedCornerShape(20.dp))
-            .padding(16.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(SurfaceTile2)
+            .padding(18.dp)
             .animateContentSize()
             .testTag("monthly_heatmap_card")
     ) {
-        // Summary Header (Clickable to toggle)
+        // Summary Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .bounceClickable(scaleDown = 0.98f) { isExpanded = !isExpanded },
+                .bounceClick { isExpanded = !isExpanded },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(30.dp)
+                        .size(32.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(DarkElevated),
+                        .background(SurfaceTile1),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        tint = EditorialBlue,
-                        modifier = Modifier.size(15.dp)
+                        tint = ActionBlue,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
 
                 Column {
                     Text(
                         text = "30-Day Retrospective",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            color = InkWhite,
-                            fontSize = 14.sp
-                        )
+                        style = TypographyBodyStrong.copy(fontSize = 15.sp, color = BodyOnDark)
                     )
                     Text(
-                        text = "${report.goodDaysCount} clean days (${report.trendComparisonPercent}%)",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = EditorialBlue,
-                            fontSize = 11.sp
-                        )
+                        text = "${report.goodDaysCount} clean days (${report.trendComparisonPercent}% compliance)",
+                        style = TypographyCaption.copy(fontSize = 12.sp, color = SkyLinkBlue)
                     )
                 }
             }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(9999.dp))
+                    .background(SurfaceTile1)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = if (isExpanded) "Hide" else "Expand",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = InkMuted,
-                        fontSize = 11.sp
-                    )
+                    text = if (isExpanded) "Hide" else "Inspect",
+                    style = TypographyButtonUtility.copy(color = BodyMuted, fontSize = 11.sp)
                 )
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = InkMuted,
+                    tint = BodyMuted,
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(14.dp)
                         .graphicsLayer { rotationZ = arrowRotation }
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = report.trendInsight,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = InkMuted,
-                fontSize = 12.sp,
-                lineHeight = 16.sp
-            )
-        )
-
-        // Expandable Responsive Dot Matrix
+        // Expanded Calendar Grid
         AnimatedVisibility(visible = isExpanded) {
-            Column(modifier = Modifier.padding(top = 12.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(HairlineBorder)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Heatmap Grid: 7 columns with weight(1f) to guarantee zero clipping on 6.3" screens
-                val rows = report.days.chunked(7)
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    rows.forEach { weekDays ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            weekDays.forEach { day ->
-                                val isSelected = selectedDay?.date == day.date
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(28.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(day.level.color.copy(alpha = if (isSelected) 0.55f else 0.2f))
-                                        .border(
-                                            width = if (isSelected) 1.5.dp else 1.dp,
-                                            color = if (isSelected) InkWhite else day.level.color.copy(alpha = 0.5f),
-                                            shape = RoundedCornerShape(6.dp)
-                                        )
-                                        .bounceClickable(scaleDown = 0.88f) {
-                                            selectedDay = if (isSelected) null else day
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = day.displayDate.takeLast(2).trim(),
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = if (isSelected) InkWhite else InkMuted,
-                                            fontSize = 9.sp
-                                        )
-                                    )
-                                }
-                            }
-                            repeat(7 - weekDays.size) {
-                                Spacer(modifier = Modifier.weight(1f).height(28.dp))
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Selected Day Inspection Tooltip with animated reveal
-                AnimatedVisibility(visible = selectedDay != null) {
-                    selectedDay?.let { day ->
-                        Column {
-                            Row(
+            Column(modifier = Modifier.padding(top = 16.dp)) {
+                // Day grid (6 cols x 5 rows)
+                val chunkedDays = report.days.chunked(6)
+                chunkedDays.forEach { rowDays ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        rowDays.forEach { day ->
+                            val isSel = selectedDay?.date == day.date
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .height(34.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(DarkElevated)
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .background(day.level.color.copy(alpha = if (isSel) 0.5f else 0.2f))
+                                    .bounceClick { selectedDay = day },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "${day.dayOfWeek}, ${day.displayDate}",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = InkWhite,
-                                        fontSize = 11.sp
+                                    text = day.displayDate.takeLast(2).trim(),
+                                    style = TypographyCaptionStrong.copy(
+                                        fontSize = 11.sp,
+                                        color = if (isSel) BodyOnDark else BodyMuted
                                     )
                                 )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Avg AQI ${day.avgAqi.toInt()}",
-                                        style = MaterialTheme.typography.titleSmall.copy(
-                                            color = day.level.color,
-                                            fontSize = 12.sp
-                                        )
-                                    )
-                                    Text(
-                                        text = "· ${day.level.label}",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = day.level.color,
-                                            fontSize = 10.sp
-                                        )
-                                    )
-                                }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                 }
 
-                // Legend row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    LegendItem(color = AqiGood, label = "Good")
-                    LegendItem(color = AqiModerate, label = "Moderate")
-                    LegendItem(color = AqiSensitive, label = "Sensitive")
-                    LegendItem(color = AqiUnhealthy, label = "Unhealthy")
+                // Selected Day Details
+                selectedDay?.let { day ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(SurfaceTile1)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${day.date} · AQI ${day.avgAqi.toInt()}",
+                            style = TypographyBodyStrong.copy(fontSize = 13.sp)
+                        )
+                        AppleStatusPill(level = day.level)
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun LegendItem(color: androidx.compose.ui.graphics.Color, label: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = InkFaint,
-                fontSize = 9.sp
-            )
-        )
     }
 }
