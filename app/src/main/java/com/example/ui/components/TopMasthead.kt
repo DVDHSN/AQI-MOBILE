@@ -78,7 +78,7 @@ fun ClassicAppleNavBar(
                         .background(AppleActionBlue)
                 )
                 Text(
-                    text = "Atmosphere",
+                    text = "AQI",
                     style = TypographyTagline.copy(
                         fontSize = 18.sp,
                         letterSpacing = (-0.3).sp,

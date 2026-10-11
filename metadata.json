@@ -1,5 +1,5 @@
 {
-  "name": "Atmosphere",
+  "name": "AQI",
   "description": "Minimalist luxury dark-mode air quality intelligence tracker powered by Open-Meteo.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

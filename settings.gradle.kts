@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Atmosphere"
+rootProject.name = "AQI"
 
 include(":app")

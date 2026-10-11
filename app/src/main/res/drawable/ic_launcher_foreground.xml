@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/aqi_app_icon_1791605275220"
+        android:drawable="@drawable/lucide_cloudy_logo_1791715683108"
         android:gravity="center" />
 </layer-list>
