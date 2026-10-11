@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,10 +37,11 @@ fun AtmosphericDriversSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(SurfaceTile2)
+            .clip(RoundedCornerShape(22.dp))
+            .background(AppleCardBackground)
+            .border(0.5.dp, AppleBorder, RoundedCornerShape(22.dp))
             .bounceClick { /* tactile inspection */ }
-            .padding(18.dp)
+            .padding(20.dp)
             .testTag("atmospheric_drivers_section")
     ) {
         Row(
@@ -54,18 +56,18 @@ fun AtmosphericDriversSection(
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = ActionBlue,
+                    tint = AppleActionBlue,
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
                     text = "Primary Atmospheric Driver",
-                    style = TypographyBodyStrong.copy(fontSize = 14.sp, color = BodyOnDark)
+                    style = TypographyBodyStrong.copy(fontSize = 14.sp, color = AppleTextPrimary)
                 )
             }
 
             Text(
                 text = "${driver.formula} · ${driver.relativeSharePercent}%",
-                style = TypographyCaptionStrong.copy(color = SkyLinkBlue, fontSize = 12.sp)
+                style = TypographyCaptionStrong.copy(color = AppleSkyBlue, fontSize = 12.sp)
             )
         }
 
@@ -84,16 +86,16 @@ fun AtmosphericDriversSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(4.dp)
+                .height(5.dp)
                 .clip(RoundedCornerShape(9999.dp))
-                .background(SurfaceTile1)
+                .background(AppleCardSecondary)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(animatedShare)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(ActionBlue)
+                    .background(AppleActionBlue)
             )
         }
 

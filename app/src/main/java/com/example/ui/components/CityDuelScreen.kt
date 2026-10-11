@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -88,13 +89,27 @@ fun CityDuelScreen(
                         text = "City 1: ${cityA.name}",
                         style = TypographyCaptionStrong.copy(fontSize = 12.sp, color = AppleSkyBlue)
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp)
+                    ) {
                         items(availableLocations, key = { "a_${it.id}" }) { loc ->
                             val isSel = loc.id == cityA.id
+                            val animatedBg by animateColorAsState(
+                                targetValue = if (isSel) AppleActionBlue else AppleCardSecondary,
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "duelCityABg_${loc.id}"
+                            )
+                            val animatedText by animateColorAsState(
+                                targetValue = if (isSel) AppleTextPrimary else AppleTextSecondary,
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "duelCityAText_${loc.id}"
+                            )
+
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(9999.dp))
-                                    .background(if (isSel) AppleActionBlue else AppleCardSecondary)
+                                    .background(animatedBg)
                                     .border(
                                         0.5.dp,
                                         if (isSel) AppleActionBlue else AppleBorder,
@@ -106,10 +121,12 @@ fun CityDuelScreen(
                                 Text(
                                     text = loc.name,
                                     style = TypographyCaptionStrong.copy(
-                                        color = if (isSel) AppleTextPrimary else AppleTextSecondary,
+                                        color = animatedText,
                                         fontSize = 12.sp,
                                         fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Normal
-                                    )
+                                    ),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
@@ -122,13 +139,27 @@ fun CityDuelScreen(
                         text = "City 2: ${cityB.name}",
                         style = TypographyCaptionStrong.copy(fontSize = 12.sp, color = AppleSkyBlue)
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp)
+                    ) {
                         items(availableLocations, key = { "b_${it.id}" }) { loc ->
                             val isSel = loc.id == cityB.id
+                            val animatedBg by animateColorAsState(
+                                targetValue = if (isSel) AppleActionBlue else AppleCardSecondary,
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "duelCityBBg_${loc.id}"
+                            )
+                            val animatedText by animateColorAsState(
+                                targetValue = if (isSel) AppleTextPrimary else AppleTextSecondary,
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "duelCityBText_${loc.id}"
+                            )
+
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(9999.dp))
-                                    .background(if (isSel) AppleActionBlue else AppleCardSecondary)
+                                    .background(animatedBg)
                                     .border(
                                         0.5.dp,
                                         if (isSel) AppleActionBlue else AppleBorder,
@@ -140,10 +171,12 @@ fun CityDuelScreen(
                                 Text(
                                     text = loc.name,
                                     style = TypographyCaptionStrong.copy(
-                                        color = if (isSel) AppleTextPrimary else AppleTextSecondary,
+                                        color = animatedText,
                                         fontSize = 12.sp,
                                         fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Normal
-                                    )
+                                    ),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
@@ -156,6 +189,23 @@ fun CityDuelScreen(
         item {
             val aqiA = reportA?.current?.usAqi?.toInt()
             val aqiB = reportB?.current?.usAqi?.toInt()
+
+            val animatedAqiA by animateIntAsState(
+                targetValue = aqiA ?: 0,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                label = "duelAqiA"
+            )
+            val animatedAqiB by animateIntAsState(
+                targetValue = aqiB ?: 0,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                label = "duelAqiB"
+            )
 
             Column(
                 modifier = Modifier
@@ -183,14 +233,15 @@ fun CityDuelScreen(
                             .clip(RoundedCornerShape(16.dp))
                             .background(AppleCardSecondary)
                             .border(0.5.dp, AppleBorder, RoundedCornerShape(16.dp))
-                            .padding(16.dp),
+                            .padding(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = cityA.name,
                             style = TypographyBodyStrong.copy(fontSize = 15.sp),
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         if (isLoadingA) {
                             CircularProgressIndicator(
@@ -200,10 +251,10 @@ fun CityDuelScreen(
                             )
                         } else if (aqiA != null) {
                             Text(
-                                text = aqiA.toString(),
-                                style = TypographyHeroDisplay.copy(fontSize = 42.sp)
+                                text = animatedAqiA.toString(),
+                                style = TypographyHeroDisplay.copy(fontSize = 38.sp)
                             )
-                            reportA?.current?.level?.let { AppleStatusBadge(level = it) }
+                            reportA?.current?.level?.let { AppleStatusBadge(level = it, fontSize = 11.sp) }
                         } else {
                             Text(text = "—", style = TypographyDisplayLg)
                         }
@@ -216,14 +267,15 @@ fun CityDuelScreen(
                             .clip(RoundedCornerShape(16.dp))
                             .background(AppleCardSecondary)
                             .border(0.5.dp, AppleBorder, RoundedCornerShape(16.dp))
-                            .padding(16.dp),
+                            .padding(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = cityB.name,
                             style = TypographyBodyStrong.copy(fontSize = 15.sp),
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         if (isLoadingB) {
                             CircularProgressIndicator(
@@ -233,10 +285,10 @@ fun CityDuelScreen(
                             )
                         } else if (aqiB != null) {
                             Text(
-                                text = aqiB.toString(),
-                                style = TypographyHeroDisplay.copy(fontSize = 42.sp)
+                                text = animatedAqiB.toString(),
+                                style = TypographyHeroDisplay.copy(fontSize = 38.sp)
                             )
-                            reportB?.current?.level?.let { AppleStatusBadge(level = it) }
+                            reportB?.current?.level?.let { AppleStatusBadge(level = it, fontSize = 11.sp) }
                         } else {
                             Text(text = "—", style = TypographyDisplayLg)
                         }

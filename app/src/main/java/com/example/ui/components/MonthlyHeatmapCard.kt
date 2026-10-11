@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,9 +53,10 @@ fun MonthlyHeatmapCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(SurfaceTile2)
-            .padding(18.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(AppleCardBackground)
+            .border(0.5.dp, AppleBorder, RoundedCornerShape(22.dp))
+            .padding(20.dp)
             .animateContentSize()
             .testTag("monthly_heatmap_card")
     ) {
@@ -73,15 +75,15 @@ fun MonthlyHeatmapCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(SurfaceTile1),
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(AppleCardSecondary),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        tint = ActionBlue,
+                        tint = AppleActionBlue,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -89,11 +91,11 @@ fun MonthlyHeatmapCard(
                 Column {
                     Text(
                         text = "30-Day Retrospective",
-                        style = TypographyBodyStrong.copy(fontSize = 15.sp, color = BodyOnDark)
+                        style = TypographyBodyStrong.copy(fontSize = 15.sp, color = AppleTextPrimary)
                     )
                     Text(
                         text = "${report.goodDaysCount} clean days (${report.trendComparisonPercent}% compliance)",
-                        style = TypographyCaption.copy(fontSize = 12.sp, color = SkyLinkBlue)
+                        style = TypographyCaption.copy(fontSize = 12.sp, color = AppleSkyBlue)
                     )
                 }
             }
@@ -103,17 +105,18 @@ fun MonthlyHeatmapCard(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(SurfaceTile1)
+                    .background(AppleCardSecondary)
+                    .border(0.5.dp, AppleBorder, RoundedCornerShape(9999.dp))
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = if (isExpanded) "Hide" else "Inspect",
-                    style = TypographyButtonUtility.copy(color = BodyMuted, fontSize = 11.sp)
+                    style = TypographyButtonUtility.copy(color = AppleTextSecondary, fontSize = 11.sp)
                 )
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = BodyMuted,
+                    tint = AppleTextSecondary,
                     modifier = Modifier
                         .size(14.dp)
                         .graphicsLayer { rotationZ = arrowRotation }
@@ -140,7 +143,12 @@ fun MonthlyHeatmapCard(
                                     .weight(1f)
                                     .height(34.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(day.level.color.copy(alpha = if (isSel) 0.5f else 0.2f))
+                                    .background(day.level.color.copy(alpha = if (isSel) 0.5f else 0.18f))
+                                    .border(
+                                        width = if (isSel) 1.dp else 0.5.dp,
+                                        color = if (isSel) day.level.color else AppleBorder,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
                                     .bounceClick { selectedDay = day },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -148,7 +156,7 @@ fun MonthlyHeatmapCard(
                                     text = day.displayDate.takeLast(2).trim(),
                                     style = TypographyCaptionStrong.copy(
                                         fontSize = 11.sp,
-                                        color = if (isSel) BodyOnDark else BodyMuted
+                                        color = if (isSel) AppleTextPrimary else AppleTextSecondary
                                     )
                                 )
                             }
@@ -162,15 +170,16 @@ fun MonthlyHeatmapCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(11.dp))
-                            .background(SurfaceTile1)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(AppleCardSecondary)
+                            .border(0.5.dp, AppleBorder, RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "${day.date} · AQI ${day.avgAqi.toInt()}",
-                            style = TypographyBodyStrong.copy(fontSize = 13.sp)
+                            style = TypographyBodyStrong.copy(fontSize = 13.sp, color = AppleTextPrimary)
                         )
                         AppleStatusPill(level = day.level)
                     }

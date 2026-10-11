@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
+import com.example.ui.animation.atmosphericParticles
 import com.example.ui.animation.bounceClick
 import com.example.ui.icons.LucideIcons
 import com.example.ui.theme.*
@@ -348,6 +349,7 @@ fun AppleWeatherHeroCard(
             .clip(RoundedCornerShape(22.dp))
             .background(AppleCardBackground)
             .border(0.5.dp, AppleBorder, RoundedCornerShape(22.dp))
+            .atmosphericParticles(color = level.color, particleCount = 6)
             .padding(20.dp)
             .testTag("hero_aqi_card")
     ) {
@@ -534,35 +536,39 @@ fun AppleWeatherHeroCard(
 }
 
 /**
- * Apple Status Badge with colored dot
+ * Apple Status Badge with colored dot (guaranteed single-line, scaled for compact grids)
  */
 @Composable
 fun AppleStatusBadge(
     level: AqiLevel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fontSize: androidx.compose.ui.unit.TextUnit = 12.sp
 ) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(9999.dp))
             .background(level.color.copy(alpha = 0.16f))
             .border(0.5.dp, level.color.copy(alpha = 0.3f), RoundedCornerShape(9999.dp))
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 9.dp, vertical = 4.5.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(7.dp)
+                .size(6.dp)
                 .clip(CircleShape)
                 .background(level.color)
         )
         Text(
             text = level.label,
             style = TypographyCaptionStrong.copy(
-                fontSize = 13.sp,
+                fontSize = fontSize,
                 color = level.color,
                 fontWeight = FontWeight.SemiBold
-            )
+            ),
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -570,11 +576,12 @@ fun AppleStatusBadge(
 @Composable
 fun AppleStatusPill(
     level: AqiLevel,
-    modifier: Modifier = Modifier
-) = AppleStatusBadge(level = level, modifier = modifier)
+    modifier: Modifier = Modifier,
+    fontSize: androidx.compose.ui.unit.TextUnit = 11.5.sp
+) = AppleStatusBadge(level = level, modifier = modifier, fontSize = fontSize)
 
 /**
- * Precautionary Health Recommendations (Apple Health Style Chips)
+ * Precautionary Health Recommendations (Apple Health Style Chips with fluid microinteractions)
  */
 @Composable
 fun AppleHealthAdvisoryCard(
@@ -627,19 +634,31 @@ fun AppleHealthAdvisoryCard(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Horizontal scrolling option pills with spring bounce
-        Row(
+        // Horizontal scrolling option pills with fluid spring animation and comfortable widths
+        androidx.compose.foundation.lazy.LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
         ) {
-            advisoryOptions.forEachIndexed { index, (title, _, icon) ->
+            items(advisoryOptions.size) { index ->
+                val (title, _, icon) = advisoryOptions[index]
                 val isSelected = selectedIndex == index
 
-                Box(
+                val animatedBgColor by animateColorAsState(
+                    targetValue = if (isSelected) AppleActionBlue else AppleCardSecondary,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "healthPillBg_$index"
+                )
+                val animatedTextColor by animateColorAsState(
+                    targetValue = if (isSelected) AppleTextPrimary else AppleTextSecondary,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "healthPillText_$index"
+                )
+
+                Row(
                     modifier = Modifier
-                        .weight(1f)
                         .clip(RoundedCornerShape(9999.dp))
-                        .background(if (isSelected) AppleActionBlue else AppleCardSecondary)
+                        .background(animatedBgColor)
                         .border(
                             0.5.dp,
                             if (isSelected) AppleActionBlue else AppleBorder,
@@ -649,16 +668,25 @@ fun AppleHealthAdvisoryCard(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             selectedIndex = index
                         }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = animatedTextColor,
+                        modifier = Modifier.size(13.dp)
+                    )
                     Text(
                         text = title,
                         style = TypographyCaptionStrong.copy(
-                            fontSize = 11.5.sp,
-                            color = if (isSelected) AppleTextPrimary else AppleTextSecondary,
+                            fontSize = 12.sp,
+                            color = animatedTextColor,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                        )
+                        ),
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -827,11 +855,21 @@ fun AppleIndividualPollutantCard(
         label = "pollutantValueAnimation"
     )
 
+    val fraction = (ratio / 2.0f).coerceIn(0.05f, 1.0f)
+    val animatedFraction by animateFloatAsState(
+        targetValue = fraction,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "pollutantBarFraction"
+    )
+
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(AppleCardBackground)
-            .border(0.5.dp, AppleBorder, RoundedCornerShape(20.dp))
+            .border(0.5.dp, AppleBorder, RoundedCornerShape(22.dp))
             .bounceClick { /* tactile bounce */ }
             .padding(16.dp)
             .testTag("pollutant_card_${model.formula}")
@@ -917,7 +955,7 @@ fun AppleIndividualPollutantCard(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(fraction)
+                    .fillMaxWidth(animatedFraction)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(9999.dp))
                     .background(if (isElevated) AppleOrange else AppleActionBlue)

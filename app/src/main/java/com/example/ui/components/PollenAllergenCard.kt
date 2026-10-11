@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,9 +52,10 @@ fun PollenAllergenCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(SurfaceTile2)
-            .padding(18.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(AppleCardBackground)
+            .border(0.5.dp, AppleBorder, RoundedCornerShape(22.dp))
+            .padding(20.dp)
             .animateContentSize()
             .testTag("pollen_allergen_card")
     ) {
@@ -72,15 +74,15 @@ fun PollenAllergenCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(SurfaceTile1),
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(AppleCardSecondary),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Spa,
                         contentDescription = null,
-                        tint = ActionBlue,
+                        tint = AppleActionBlue,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -88,11 +90,11 @@ fun PollenAllergenCard(
                 Column {
                     Text(
                         text = "Botanical Allergens",
-                        style = TypographyBodyStrong.copy(fontSize = 15.sp, color = BodyOnDark)
+                        style = TypographyBodyStrong.copy(fontSize = 15.sp, color = AppleTextPrimary)
                     )
                     Text(
                         text = "Dominant species: ${report.dominantPollen}",
-                        style = TypographyCaption.copy(fontSize = 12.sp, color = BodyMuted)
+                        style = TypographyCaption.copy(fontSize = 12.sp, color = AppleTextSecondary)
                     )
                 }
             }
@@ -102,17 +104,18 @@ fun PollenAllergenCard(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .clip(RoundedCornerShape(9999.dp))
-                    .background(SurfaceTile1)
+                    .background(AppleCardSecondary)
+                    .border(0.5.dp, AppleBorder, RoundedCornerShape(9999.dp))
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = if (isExpanded) "Hide" else "Details",
-                    style = TypographyButtonUtility.copy(color = BodyMuted, fontSize = 11.sp)
+                    style = TypographyButtonUtility.copy(color = AppleTextSecondary, fontSize = 11.sp)
                 )
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = BodyMuted,
+                    tint = AppleTextSecondary,
                     modifier = Modifier
                         .size(14.dp)
                         .graphicsLayer { rotationZ = arrowRotation }
@@ -127,16 +130,17 @@ fun PollenAllergenCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 5.dp)
-                            .clip(RoundedCornerShape(11.dp))
-                            .background(SurfaceTile1)
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(AppleCardSecondary)
+                            .border(0.5.dp, AppleBorder, RoundedCornerShape(12.dp))
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = pollen.name,
-                            style = TypographyBodyStrong.copy(fontSize = 13.sp, color = BodyOnDark)
+                            style = TypographyBodyStrong.copy(fontSize = 13.sp, color = AppleTextPrimary)
                         )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -144,17 +148,20 @@ fun PollenAllergenCard(
                         ) {
                             Text(
                                 text = String.format(Locale.US, "%.1f grains/m³", pollen.countGrains),
-                                style = TypographyBody.copy(fontSize = 13.sp, color = BodyMuted)
+                                style = TypographyBody.copy(fontSize = 12.5.sp, color = AppleTextSecondary)
                             )
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(9999.dp))
                                     .background(pollen.risk.color.copy(alpha = 0.18f))
+                                    .border(0.5.dp, pollen.risk.color.copy(alpha = 0.35f), RoundedCornerShape(9999.dp))
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     text = pollen.risk.label,
-                                    style = TypographyFinePrint.copy(color = pollen.risk.color, fontSize = 10.sp)
+                                    style = TypographyFinePrint.copy(color = pollen.risk.color, fontSize = 10.sp),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }

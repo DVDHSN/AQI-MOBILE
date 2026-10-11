@@ -26,7 +26,7 @@ enum class AqiStandard(
 ) {
     US_EPA("US AQI", "US Air Quality Index", "0–500 standard scale"),
     EUROPEAN("EUR AQI", "European Air Quality Index", "1–5 standard scale"),
-    WHO("WHO Standard", "WHO PM2.5 Guideline", "Ratio relative to WHO 24h limit (15 μg/m³)")
+    WHO("WHO", "WHO PM2.5 Guideline", "Ratio relative to WHO 24h limit (15 μg/m³)")
 }
 
 enum class AqiLevel(
@@ -63,7 +63,7 @@ enum class AqiLevel(
         maskAdvice = "Optional for highly sensitive or asthmatic individuals."
     ),
     SENSITIVE(
-        label = "UNHEALTHY (SENSITIVE)",
+        label = "SENSITIVE",
         minVal = 101,
         maxVal = 150,
         color = AqiSensitive,
