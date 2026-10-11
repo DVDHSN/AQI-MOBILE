@@ -244,6 +244,16 @@ fun AQIDashboardScreen(
                             )
                         }
 
+                        // Primary Atmospheric Driver Section
+                        report.drivers?.let { drivers ->
+                            item(key = "atmospheric_drivers_card") {
+                                AtmosphericDriversSection(
+                                    drivers = drivers,
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+                        }
+
                         // 4. 24-Hour Forecast & Trend Chart
                         item(key = "hourly_forecast_card") {
                             TrendChart(
@@ -945,7 +955,6 @@ fun AppleIndividualPollutantCard(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Benchmark Bar vs WHO limit
-        val fraction = (ratio / 2.0f).coerceIn(0.05f, 1.0f)
         Box(
             modifier = Modifier
                 .fillMaxWidth()

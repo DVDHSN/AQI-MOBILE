@@ -223,6 +223,7 @@ fun AtmosphereAppContent(
                             onSelectCityB = onSelectDuelCityB,
                             selectedMetric = uiState.selectedMetric,
                             onSelectMetric = onSelectMetric,
+                            onBackToOverview = { onSelectAppMode(AppMode.DISPATCH) },
                             modifier = Modifier.fillMaxSize()
                         )
                     }

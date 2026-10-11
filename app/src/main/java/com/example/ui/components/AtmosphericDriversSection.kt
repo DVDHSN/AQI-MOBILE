@@ -7,8 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,11 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AtmosphericDrivers
 import com.example.ui.animation.bounceClick
+import com.example.ui.icons.LucideIcons
 import com.example.ui.theme.*
 
 /**
- * Atmospheric Drivers Section redesigned with Apple design tokens.
- * Near-Black Tile 2 (#2a2a2c), {rounded.lg} (18.dp), Action Blue #0066cc.
+ * Atmospheric Drivers Section matching Apple Weather design tokens.
  */
 @Composable
 fun AtmosphericDriversSection(
@@ -51,23 +49,23 @@ fun AtmosphericDriversSection(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Info,
+                    imageVector = LucideIcons.Activity,
                     contentDescription = null,
-                    tint = AppleActionBlue,
-                    modifier = Modifier.size(15.dp)
+                    tint = AppleTextSecondary,
+                    modifier = Modifier.size(13.dp)
                 )
                 Text(
-                    text = "Primary Atmospheric Driver",
-                    style = TypographyBodyStrong.copy(fontSize = 14.sp, color = AppleTextPrimary)
+                    text = "PRIMARY DRIVER",
+                    style = TypographySectionHeader
                 )
             }
 
             Text(
-                text = "${driver.formula} · ${driver.relativeSharePercent}%",
-                style = TypographyCaptionStrong.copy(color = AppleSkyBlue, fontSize = 12.sp)
+                text = "${driver.formula} · ${driver.relativeSharePercent}% Dominance",
+                style = TypographyCaption.copy(color = AppleSkyBlue, fontSize = 12.sp)
             )
         }
 
@@ -103,7 +101,7 @@ fun AtmosphericDriversSection(
 
         Text(
             text = "${driver.name} is currently the primary determinant of local ambient air quality indices.",
-            style = TypographyFinePrint.copy(color = BodyMuted, fontSize = 12.sp)
+            style = TypographyBody.copy(color = AppleTextSecondary, fontSize = 13.5.sp)
         )
     }
 }

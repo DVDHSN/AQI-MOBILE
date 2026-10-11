@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AirQualityReport
@@ -46,8 +48,12 @@ fun CityDuelScreen(
     onSelectCityB: (LocationItem) -> Unit,
     selectedMetric: ChartMetric,
     onSelectMetric: (ChartMetric) -> Unit,
+    onBackToOverview: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    BackHandler {
+        onBackToOverview()
+    }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -227,22 +233,43 @@ fun CityDuelScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // City A Score Box
+                    val isCityAWinner = aqiA != null && aqiB != null && aqiA < aqiB
+                    val isCityBWinner = aqiA != null && aqiB != null && aqiB < aqiA
+
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(16.dp))
                             .background(AppleCardSecondary)
-                            .border(0.5.dp, AppleBorder, RoundedCornerShape(16.dp))
+                            .border(
+                                width = if (isCityAWinner) 1.dp else 0.5.dp,
+                                color = if (isCityAWinner) AppleGreen else AppleBorder,
+                                shape = RoundedCornerShape(16.dp)
+                            )
                             .padding(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = cityA.name,
-                            style = TypographyBodyStrong.copy(fontSize = 15.sp),
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = cityA.name,
+                                style = TypographyBodyStrong.copy(fontSize = 15.sp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (isCityAWinner) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(AppleGreen)
+                                )
+                            }
+                        }
+
                         if (isLoadingA) {
                             CircularProgressIndicator(
                                 color = AppleActionBlue,
@@ -266,17 +293,35 @@ fun CityDuelScreen(
                             .weight(1f)
                             .clip(RoundedCornerShape(16.dp))
                             .background(AppleCardSecondary)
-                            .border(0.5.dp, AppleBorder, RoundedCornerShape(16.dp))
+                            .border(
+                                width = if (isCityBWinner) 1.dp else 0.5.dp,
+                                color = if (isCityBWinner) AppleGreen else AppleBorder,
+                                shape = RoundedCornerShape(16.dp)
+                            )
                             .padding(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = cityB.name,
-                            style = TypographyBodyStrong.copy(fontSize = 15.sp),
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = cityB.name,
+                                style = TypographyBodyStrong.copy(fontSize = 15.sp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (isCityBWinner) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(AppleGreen)
+                                )
+                            }
+                        }
+
                         if (isLoadingB) {
                             CircularProgressIndicator(
                                 color = AppleActionBlue,
@@ -300,25 +345,40 @@ fun CityDuelScreen(
                     Spacer(modifier = Modifier.height(14.dp))
                     val cleanerCity = if (aqiA < aqiB) cityA.name else if (aqiB < aqiA) cityB.name else "Both cities"
                     val delta = abs(aqiA - aqiB)
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(AppleCardSecondary)
-                            .border(0.5.dp, AppleBorder, RoundedCornerShape(12.dp))
-                            .padding(12.dp)
+                            .background(if (delta > 0) AppleGreen.copy(alpha = 0.12f) else AppleCardSecondary)
+                            .border(
+                                0.5.dp,
+                                if (delta > 0) AppleGreen.copy(alpha = 0.3f) else AppleBorder,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        Icon(
+                            imageVector = if (delta > 0) LucideIcons.Sparkles else LucideIcons.Activity,
+                            contentDescription = null,
+                            tint = if (delta > 0) AppleGreen else AppleTextSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Text(
-                            text = if (delta == 0) "Equal air quality measured in both locations."
+                            text = if (delta == 0) "Identical air quality measured in both locations."
                             else "$cleanerCity has cleaner air by $delta AQI points.",
-                            style = TypographyBody.copy(fontSize = 13.5.sp, color = AppleTextPrimary)
+                            style = TypographyBody.copy(
+                                fontSize = 13.5.sp,
+                                color = if (delta > 0) AppleTextPrimary else AppleTextSecondary
+                            )
                         )
                     }
                 }
             }
         }
 
-        // 3. Pollutant Breakdown Comparison
+        // 3. Pollutant Breakdown Comparison with animated comparison visualizers
         if (reportA != null && reportB != null) {
             item {
                 Column(
@@ -328,12 +388,22 @@ fun CityDuelScreen(
                         .background(AppleCardBackground)
                         .border(0.5.dp, AppleBorder, RoundedCornerShape(22.dp))
                         .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        text = "POLLUTANT COMPARISON",
-                        style = TypographySectionHeader
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "POLLUTANT COMPARISON",
+                            style = TypographySectionHeader
+                        )
+                        Text(
+                            text = "${cityA.name} vs ${cityB.name}",
+                            style = TypographyCaption.copy(fontSize = 11.5.sp, color = AppleSkyBlue)
+                        )
+                    }
 
                     val metrics = listOf(
                         Triple("PM2.5", reportA.current.pm25, reportB.current.pm25),
@@ -343,36 +413,106 @@ fun CityDuelScreen(
                     )
 
                     metrics.forEach { (name, valA, valB) ->
-                        Row(
+                        val maxV = maxOf(valA, valB, 1f)
+                        val fracA = (valA / maxV).coerceIn(0.08f, 1f)
+                        val fracB = (valB / maxV).coerceIn(0.08f, 1f)
+
+                        val animFracA by animateFloatAsState(
+                            targetValue = fracA,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
+                            label = "duelBarA_$name"
+                        )
+                        val animFracB by animateFloatAsState(
+                            targetValue = fracB,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
+                            label = "duelBarB_$name"
+                        )
+
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(AppleCardSecondary)
                                 .border(0.5.dp, AppleBorder, RoundedCornerShape(12.dp))
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = String.format(Locale.US, "%.1f", valA),
-                                style = TypographyBodyStrong.copy(
-                                    color = if (valA <= valB) AppleGreen else AppleTextSecondary,
-                                    fontSize = 14.sp
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = String.format(Locale.US, "%.1f", valA),
+                                    style = TypographyBodyStrong.copy(
+                                        color = if (valA < valB) AppleGreen else if (valA > valB) AppleTextSecondary else AppleSkyBlue,
+                                        fontSize = 14.sp
+                                    )
                                 )
-                            )
 
-                            Text(
-                                text = name,
-                                style = TypographyBodyStrong.copy(fontSize = 14.sp, color = AppleTextPrimary)
-                            )
-
-                            Text(
-                                text = String.format(Locale.US, "%.1f", valB),
-                                style = TypographyBodyStrong.copy(
-                                    color = if (valB <= valA) AppleGreen else AppleTextSecondary,
-                                    fontSize = 14.sp
+                                Text(
+                                    text = name,
+                                    style = TypographyBodyStrong.copy(fontSize = 13.5.sp, color = AppleTextPrimary)
                                 )
-                            )
+
+                                Text(
+                                    text = String.format(Locale.US, "%.1f", valB),
+                                    style = TypographyBodyStrong.copy(
+                                        color = if (valB < valA) AppleGreen else if (valB > valA) AppleTextSecondary else AppleSkyBlue,
+                                        fontSize = 14.sp
+                                    )
+                                )
+                            }
+
+                            // Dual comparative progress bar
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                // City A bar (aligns right to center)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(9999.dp))
+                                        .background(AppleCardTertiary),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(animFracA)
+                                            .fillMaxHeight()
+                                            .clip(RoundedCornerShape(9999.dp))
+                                            .background(if (valA <= valB) AppleGreen else AppleOrange)
+                                    )
+                                }
+
+                                // City B bar (aligns left from center)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(9999.dp))
+                                        .background(AppleCardTertiary),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(animFracB)
+                                            .fillMaxHeight()
+                                            .clip(RoundedCornerShape(9999.dp))
+                                            .background(if (valB <= valA) AppleGreen else AppleOrange)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
